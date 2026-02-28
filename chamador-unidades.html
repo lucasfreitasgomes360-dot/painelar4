@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Chamador - USF Aero Rancho IV</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { color: #003366; text-align: center; margin-bottom: 20px; }
+        .categoria-selector { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #dee2e6; }
+        label { font-weight: bold; display: block; margin-top: 15px; font-size: 0.9rem; }
+        select, input { width: 100%; padding: 12px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
+        .btn-update { background: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-normal { background: #0056b3; color: white; border: none; padding: 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 48%; }
+        .btn-preferencial { background: #ff8c00; color: white; border: none; padding: 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 48%; }
+        .btn-odonto { background: #17a2b8; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-coleta { background: #6f42c1; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 15px; }
+        
+        .painel-status { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #856404; text-align: center; }
+        .painel-status b { font-size: 1.1rem; color: #000; }
+
+        .alerta-instrucao { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem; text-align: center; font-weight: bold; }
+        .flex-buttons { display: flex; justify-content: space-between; margin-top: 15px; }
+        .btn-chamar { width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        .btn-reset { background: none; border: none; color: #999; font-size: 0.7rem; cursor: pointer; text-decoration: underline; margin-top: 15px; width: 100%; }
+        .historico-local { margin-top: 20px; border-top: 2px solid #003366; padding-top: 10px; }
+        .item-historico { background: #fff; border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; margin-bottom: 5px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>USF AERO RANCHO IV</h2>
+        <div class="categoria-selector">
+            <label>Quem é você?</label>
+            <select id="categoria" onchange="trocouCategoria()">
+                <option value="">-- Selecione --</option>
+                <option value="acolhimento">ACOLHIMENTO (Entrega Senhas)</option>
+                <option value="recepcao">RECEPÇÃO (Chama Senhas)</option>
+                <option value="medico">MÉDICO</option>
+                <option value="enfermagem">ENFERMAGEM</option>
+                <option value="servico_social">SERVIÇO SOCIAL</option>
+                <option value="odonto">ODONTOLOGIA</option>
+                <option value="gerencia">GERÊNCIA</option>
+            </select>
+        </div>
+
+        <div id="areaChamada" style="display:none">
+            
+            <div id="painelInformativoStatus" class="painel-status" style="display:none">
+                <strong>Senhas no Acolhimento:</strong><br>
+                Normal: <b id="stNormal">0</b> | Pref: <b id="stPref">0</b><br>
+                Coleta: <b id="stColeta">0</b> | Odonto: <b id="stOdonto">0</b>
+            </div>
+
+            <div id="interfaceAcolhimento" style="display:none">
+                <div class="alerta-instrucao">ℹ️ Informe a ÚLTIMA senha entregue.</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div><small>Normal:</small><input type="number" id="inputNormal" value="0"></div>
+                    <div><small>Pref:</small><input type="number" id="inputPref" value="0"></div>
+                    <div><small>Coleta:</small><input type="number" id="inputColeta" value="0"></div>
+                    <div><small>Odonto:</small><input type="number" id="inputOdonto" value="0"></div>
+                </div>
+                <button class="btn-update" onclick="atualizarEntregues()">ATUALIZAR RECEPÇÃO</button>
+            </div>
+
+            <div id="interfaceRecepcao" style="display:none">
+                <div class="flex-buttons">
+                    <button class="btn-normal" onclick="gerarSenha('NORMAL', 'SENHA')">SENHA</button>
+                    <button class="btn-preferencial" onclick="gerarSenha('PREFERENCIAL', 'SENHA PREF.')">PREF.</button>
+                </div>
+                <button class="btn-odonto" onclick="gerarSenha('ODONTO', 'SENHA ODONTO')">SENHA ODONTOLOGIA</button>
+            </div>
+
+            <div id="selecaoSala">
+                <label>Selecione seu Local:</label>
+                <select id="minhaSala" onchange="configurarTela()"></select>
+            </div>
+
+            <div id="interfaceColeta" style="display:none; margin-top:10px;">
+                <button class="btn-coleta" onclick="gerarSenha('COLETA', 'SENHA COLETA')">CHAMAR SENHA COLETA</button>
+            </div>
+
+            <div id="interfaceNome" style="display:none">
+                <label>Nome do Paciente:</label>
+                <input type="text" id="nomePaciente" placeholder="Nome completo">
+                <button class="btn-chamar" onclick="enviarChamadaNome()">CHAMAR NA TV</button>
+            </div>
+
+            <div id="interfaceAvisos" style="display:none; margin-top:20px; border-top:1px solid #ddd;">
+                <label>Mensagem para TV:</label>
+                <input type="text" id="inputAvisoUnidade">
+                <label>Cor do Card:</label>
+                <input type="color" id="corAviso" value="#007bff" style="height:40px;">
+                <input type="hidden" id="editAvisoKey">
+                <button id="btnSalvarAviso" class="btn-update" onclick="salvarAvisoTV()">SALVAR AVISO</button>
+                <div id="listaAvisosGerencia" style="margin-top:10px; font-size:0.8rem; background:#f8f9fa; padding:5px;"></div>
+            </div>
+
+            <div class="historico-local" id="sessaoHistorico" style="display:none;">
+                <h3>Histórico: <span id="nomeSalaHistorico" style="color:#d39e00"></span></h3>
+                <div id="listaHistorico"></div>
+            </div>
+
+            <button class="btn-reset" onclick="resetContadores()">Reiniciar Sistema (Protegido)</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-LPsGPEGcjMRPcEReNDQdgFWE5iE7Bh0",
+            authDomain: "usf-aero-rancho-b6d85.firebaseapp.com",
+            projectId: "usf-aero-rancho-b6d85",
+            databaseURL: "https://usf-aero-rancho-b6d85-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        let historicosPorSala = {};
+
+        const config = {
+            acolhimento: { salas: ["Mesa Acolhimento"], tipo: 'acolhimento' },
+            recepcao: { salas: ["Recepção 01", "Recepção 02", "Recepção 03"], tipo: 'botoes' },
+            medico: { salas: ["Consultório 01", "Consultório 03", "Consultório 04"], tipo: 'nome' },
+            enfermagem: { salas: ["Triagem", "Consultório 02", "Sala de Vacina", "Sala de Coleta", "Sala de Curativo"], tipo: 'nome' },
+            servico_social: { salas: ["Serviço Social"], tipo: 'nome' },
+            odonto: { salas: ["Odontologia"], tipo: 'nome' },
+            gerencia: { salas: ["Gerência"], tipo: 'nome' }
+        };
+
+        database.ref('acolhimento').on('value', snap => {
+            const d = snap.val() || {normal:0, pref:0, coleta:0, odonto:0};
+            document.getElementById('stNormal').innerText = d.normal;
+            document.getElementById('stPref').innerText = d.pref;
+            document.getElementById('stColeta').innerText = d.coleta;
+            document.getElementById('stOdonto').innerText = d.odonto;
+            
+            if(document.getElementById('categoria').value === 'acolhimento'){
+                document.getElementById('inputNormal').value = d.normal;
+                document.getElementById('inputPref').value = d.pref;
+                document.getElementById('inputColeta').value = d.coleta;
+                document.getElementById('inputOdonto').value = d.odonto;
+            }
+        });
+
+        function trocouCategoria() {
+            const cat = document.getElementById('categoria').value;
+            const selSala = document.getElementById('minhaSala');
+            if (!cat) return;
+            selSala.innerHTML = "";
+            config[cat].salas.forEach(s => { 
+                let o = document.createElement('option'); o.value = s; o.innerText = s; selSala.appendChild(o); 
+            });
+            configurarTela();
+        }
+
+        function configurarTela() {
+            const cat = document.getElementById('categoria').value;
+            const salaAtual = document.getElementById('minhaSala').value;
+            const area = document.getElementById('areaChamada');
+            if (!cat) { area.style.display="none"; return; }
+
+            document.getElementById('interfaceAcolhimento').style.display = (cat === 'acolhimento') ? 'block' : 'none';
+            document.getElementById('interfaceRecepcao').style.display = (cat === 'recepcao') ? 'block' : 'none';
+            document.getElementById('interfaceNome').style.display = (config[cat].tipo === 'nome') ? 'block' : 'none';
+            document.getElementById('interfaceAvisos').style.display = (cat === 'gerencia') ? 'block' : 'none';
+            document.getElementById('interfaceColeta').style.display = (salaAtual === "Sala de Coleta") ? 'block' : 'none';
+            document.getElementById('selecaoSala').style.display = (cat === 'acolhimento') ? 'none' : 'block';
+            document.getElementById('sessaoHistorico').style.display = (cat !== 'acolhimento') ? 'block' : 'none';
+            
+            document.getElementById('painelInformativoStatus').style.display = (cat === 'recepcao' || salaAtual === "Sala de Coleta") ? 'block' : 'none';
+
+            area.style.display = "block";
+            renderizarHistorico();
+            if(cat === 'gerencia') atualizarListaAvisos();
+        }
+
+        function atualizarEntregues() {
+            const dados = {
+                normal: parseInt(document.getElementById('inputNormal').value) || 0,
+                pref: parseInt(document.getElementById('inputPref').value) || 0,
+                coleta: parseInt(document.getElementById('inputColeta').value) || 0,
+                odonto: parseInt(document.getElementById('inputOdonto').value) || 0
+            };
+            database.ref('acolhimento').set(dados).then(() => alert("Senhas atualizadas para os setores!"));
+        }
+
+        function gerarSenha(key, prefixo) {
+            database.ref('contador/' + key).transaction(v => (v || 0) + 1, (err, comm, snap) => {
+                if (comm) enviarParaFirebase(`${prefixo} ${String(snap.val()).padStart(2, '0')}`);
+            });
+        }
+
+        function enviarChamadaNome() {
+            const nome = document.getElementById('nomePaciente').value.trim();
+            if(nome) { enviarParaFirebase(nome); document.getElementById('nomePaciente').value = ""; }
+        }
+
+        function enviarParaFirebase(texto) {
+            const sala = document.getElementById('minhaSala').value;
+            database.ref('fila_chamadas').push({ msg: texto, local: sala, hora: Date.now() });
+            
+            if (!historicosPorSala[sala]) historicosPorSala[sala] = [];
+            historicosPorSala[sala].unshift({ texto: texto, hora: new Date().toLocaleTimeString() });
+            if(historicosPorSala[sala].length > 5) historicosPorSala[sala].pop();
+            renderizarHistorico();
+        }
+
+        function renderizarHistorico() {
+            const sala = document.getElementById('minhaSala').value;
+            const lista = document.getElementById('listaHistorico');
+            if(!lista) return; lista.innerHTML = "";
+            document.getElementById('nomeSalaHistorico').innerText = sala;
+            if (historicosPorSala[sala]) {
+                historicosPorSala[sala].forEach(item => {
+                    lista.innerHTML += `<div class="item-historico"><b>${item.texto}</b> - ${item.hora} <br>
+                    <button style="background:#ffc107; border:none; padding:4px; border-radius:4px; cursor:pointer;" onclick="enviarParaFirebase('${item.texto}')">RECHAMAR</button></div>`;
+                });
+            }
+        }
+
+        function salvarAvisoTV() {
+            const msg = document.getElementById('inputAvisoUnidade').value.trim();
+            const cor = document.getElementById('corAviso').value;
+            const key = document.getElementById('editAvisoKey').value;
+            if(!msg) return;
+            if(key) {
+                database.ref('avisos_unidade/' + key).update({msg, cor});
+                document.getElementById('editAvisoKey').value = "";
+                document.getElementById('btnSalvarAviso').innerText = "SALVAR AVISO";
+            } else {
+                database.ref('avisos_unidade').push({msg, cor});
+            }
+            document.getElementById('inputAvisoUnidade').value = "";
+        }
+
+        function atualizarListaAvisos() {
+            database.ref('avisos_unidade').on('value', snap => {
+                const container = document.getElementById('listaAvisosGerencia');
+                container.innerHTML = "<b>Avisos Ativos:</b><br>";
+                const data = snap.val();
+                for(let key in data) {
+                    container.innerHTML += `<div style="padding:5px; border-bottom:1px solid #ddd;">
+                        <span style="color:${data[key].cor}">●</span> ${data[key].msg}
+                        <button onclick="prepararEdicao('${key}', '${data[key].msg}', '${data[key].cor}')">Edit</button>
+                        <button onclick="excluirAviso('${key}')" style="background:red; color:white; border:none;">X</button>
+                    </div>`;
+                }
+            });
+        }
+        function prepararEdicao(key, msg, cor) {
+            document.getElementById('inputAvisoUnidade').value = msg;
+            document.getElementById('corAviso').value = cor;
+            document.getElementById('editAvisoKey').value = key;
+            document.getElementById('btnSalvarAviso').innerText = "SALVAR ALTERAÇÃO";
+        }
+        function excluirAviso(key) { if(confirm("Excluir?")) database.ref('avisos_unidade/'+key).remove(); }
+
+        function resetContadores() {
+            const inputSenha = prompt("Digite a senha para reiniciar o sistema:");
+            
+            // A senha está ofuscada em Base64 para proteção
+            if(inputSenha && btoa(inputSenha) === "YWVyb3JhbmNob2l2") {
+                database.ref('contador').set({ NORMAL: 0, PREFERENCIAL: 0, COLETA: 0, ODONTO: 0 });
+                database.ref('acolhimento').set({ normal: 0, pref: 0, coleta: 0, odonto: 0 });
+                alert("Sistema resetado com sucesso!");
+            } else if (inputSenha) {
+                alert("Senha incorreta. Ação cancelada.");
+            }
+        }
+    </script>
+</body>
+</html>

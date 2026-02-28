@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Fila - USF Aero Rancho IV</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #002b5c;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 500px;
+            width: 90%;
+            border-bottom: 8px solid #ffcc00;
+        }
+        h1 { color: #002b5c; margin-top: 0; font-size: 2rem; }
+        p { color: #555; margin-bottom: 30px; font-size: 1.1rem; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            transition: transform 0.2s, opacity 0.2s;
+            box-sizing: border-box;
+        }
+        .btn:hover { transform: scale(1.02); opacity: 0.9; }
+        .btn-tv { background: #ffcc00; color: #002b5c; border: 2px solid #ffcc00; }
+        .btn-chamador { background: #007bff; color: white; border: 2px solid #007bff; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>USF Aero Rancho IV</h1>
+        <p>Selecione o módulo que deseja acessar:</p>
+        
+        <a href="tv-unidades.html" class="btn btn-tv" target="_blank">📺 Abrir Tela da TV</a>
+        <a href="chamador-unidades.html" class="btn btn-chamador" target="_blank">🎤 Abrir Painel Chamador</a>
+    </div>
+
+</body>
+</html>
