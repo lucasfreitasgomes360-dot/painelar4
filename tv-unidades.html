@@ -2,13 +2,13 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>TV - USF Aero Rancho IV</title>
+    <title>Sistema de Chamada TV - USF Aero Rancho IV</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <style>
         body { background: #002b5c; color: white; font-family: sans-serif; text-align: center; height: 100vh; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
         .topo { background: #001a38; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 5px solid #ffcc00; }
-        .unidade-nome { font-size: 1.8rem; font-weight: bold; text-align: left; }
+        .unidade-nome { font-size: 1.8rem; font-weight: bold; text-align: left; text-transform: uppercase; line-height: 1.2; }
         .relogio { font-size: 2.5rem; color: #ffcc00; }
         .conteudo-principal { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; position: relative; }
         #area-chamada { display: none; }
@@ -25,17 +25,19 @@
         .historico-tv { background: rgba(0,0,0,0.3); padding: 15px; display: flex; justify-content: center; gap: 40px; }
         .hist-item-tv { border-left: 4px solid #ffcc00; padding-left: 15px; text-align: left; }
         .marquee { background: #ffcc00; color: #002b5c; padding: 10px 0; font-size: 1.6rem; font-weight: bold; }
-        #aviso-inicial { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+        /* Tela de Ativação do Áudio */
+        #aviso-inicial { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
     </style>
 </head>
 <body id="corpo-tv">
-    <div id="aviso-inicial" onclick="this.style.display='none'">
-        <h1 style="color: #ffcc00;">SISTEMA PRONTO</h1>
-        <p>Clique em qualquer lugar para ativar o som e a voz.</p>
+
+    <div id="aviso-inicial" onclick="this.style.display='none'; window.speechSynthesis.getVoices();">
+        <h1 style="color: #ffcc00; font-size: 3rem;">SISTEMA PRONTO</h1>
+        <p style="color: white; font-size: 1.5rem;">Clique para ativar o painel e a voz autoritária.</p>
     </div>
 
     <div class="topo">
-        <div class="unidade-nome">USF AERO RANCHO IV<br><span style="font-size: 1.1rem; opacity: 0.8;">Dr. Nelson Tokuei Simabukuro</span></div>
+        <div class="unidade-nome" id="nome-unidade-exibicao">USF AERO RANCHO IV<br><span style="font-size: 1.1rem; opacity: 0.8;">Dr. Nelson Tokuei Simabukuro</span></div>
         <div id="relogio" class="relogio">00:00:00</div>
     </div>
 
@@ -48,7 +50,7 @@
         <div id="painel-informativo">
             <div class="card-info" id="card-cor">
                 <h1 id="titulo-info">INFORMATIVO</h1>
-                <div id="texto-info">Carregando avisos...</div>
+                <div id="texto-info">Carregando informativos da unidade...</div>
                 <div class="barra-progresso">
                     <div id="progresso-fill"></div>
                 </div>
@@ -57,9 +59,19 @@
     </div>
 
     <div id="painel-historico" class="historico-tv"></div>
-    <div class="marquee"><marquee>Bem-vindo à USF Aero Rancho IV • Respeite o fluxo de atendimento • Mantenha o silêncio para não perder sua chamada.</marquee></div>
+    <div class="marquee"><marquee id="rodape-texto">USF AERO RANCHO IV • Respeite o fluxo de atendimento • Mantenha o silêncio para ouvir sua chamada.</marquee></div>
 
     <script>
+        // 1. CONFIGURAÇÃO DE IDENTIDADE
+        const params = new URLSearchParams(window.location.search);
+        // Se não houver ID na URL, o padrão é a sua unidade aero-rancho-4
+        const unidadeID = params.get('id') || 'aero-rancho-4';
+        
+        if(unidadeID !== 'aero-rancho-4') {
+            document.getElementById('nome-unidade-exibicao').innerText = unidadeID.replace(/-/g, ' ').toUpperCase();
+        }
+
+        // 2. CONFIGURAÇÃO FIREBASE (ORIGINAL)
         const firebaseConfig = {
             apiKey: "AIzaSyB-LPsGPEGcjMRPcEReNDQdgFWE5iE7Bh0",
             authDomain: "usf-aero-rancho-b6d85.firebaseapp.com",
@@ -77,10 +89,11 @@
         let intervaloCarrossel;
         let histTv = [];
 
-        database.ref('fila_chamadas').on('child_added', (snap) => {
+        // 3. MONITORAMENTO DA FILA (UNIDADE ESPECÍFICA)
+        database.ref('unidades/' + unidadeID + '/fila_chamadas').on('child_added', (snap) => {
             const chamada = snap.val();
             filaDeEspera.push(chamada);
-            database.ref('fila_chamadas/' + snap.key).remove();
+            database.ref('unidades/' + unidadeID + '/fila_chamadas/' + snap.key).remove();
             if (!processandoChamada) iniciarProcessamentoFila();
         });
 
@@ -104,52 +117,48 @@
             void document.body.offsetWidth;
             document.body.classList.add('piscar-alerta');
             
-            somCampainha.play().catch(e => console.log("Áudio aguardando clique"));
+            somCampainha.play().catch(e => console.log("Áudio aguardando interação inicial."));
 
             atualizarHistoricoTV(atual.msg, atual.local);
-
-            // Chamada de voz com "Atenção"
+            await new Promise(r => setTimeout(r, 1500));
             await falarTexto(atual.msg, atual.local);
 
-            setTimeout(iniciarProcessamentoFila, 4000);
+            setTimeout(iniciarProcessamentoFila, 3000);
         }
 
         function falarTexto(nome, local) {
             return new Promise((resolve) => {
-                try {
-                    let localLower = local.toLowerCase();
-                    // Concordância de gênero para o local
-                    let prep = (localLower.includes("recepção") || localLower.includes("sala") || localLower.includes("triagem") || localLower.includes("mesa")) ? "à" : "ao";
-                    
-                    // Converte sigla para fala por extenso
-                    let nomeParaVoz = nome.replace("PREF.", "Preferencial");
-                    
-                    let texto;
-                    if (nome.toUpperCase().includes("SENHA")) {
-                        // Ex: "Atenção. Senha Normal zero um. Comparecer à Recepção zero um."
-                        texto = `Atenção. ${nomeParaVoz}. Comparecer ${prep} ${local}`;
-                    } else {
-                        // Ex: "Atenção. Paciente João da Silva. Dirija-se ao Consultório zero dois."
-                        texto = `Atenção. Paciente ${nomeParaVoz}. Dirija-se ${prep} ${local}`;
-                    }
-                    
-                    const fala = new SpeechSynthesisUtterance(texto);
-                    fala.lang = 'pt-BR';
-                    fala.rate = 0.9;
-                    
-                    fala.onend = () => resolve();
-                    fala.onerror = () => resolve();
-                    
-                    window.speechSynthesis.speak(fala);
-                    
-                    setTimeout(() => resolve(), 10000);
-                } catch(e) {
-                    resolve();
-                }
+                window.speechSynthesis.cancel();
+
+                let localLower = local.toLowerCase();
+                let prep = (localLower.includes("recepção") || localLower.includes("sala") || localLower.includes("triagem") || localLower.includes("mesa")) ? "à" : "ao";
+                let nomeParaVoz = nome.replace("PREF.", "Preferencial");
+                
+                let texto = nome.toUpperCase().includes("SENHA") 
+                    ? `Atenção. ${nomeParaVoz}. Comparecer ${prep} ${local}`
+                    : `Atenção. Paciente ${nomeParaVoz}. Dirija-se ${prep} ${local}`;
+                
+                const fala = new SpeechSynthesisUtterance(texto);
+                
+                // PRIORIZA VOZ AUTORITÁRIA (LOCAL DO SISTEMA)
+                let vozes = window.speechSynthesis.getVoices();
+                let vozFirme = vozes.find(v => !v.name.includes('Google') && v.lang.includes('pt-BR'));
+                
+                if (vozFirme) fala.voice = vozFirme;
+                fala.lang = 'pt-BR';
+                fala.rate = 0.85; // Velocidade levemente reduzida para passar autoridade
+                fala.pitch = 1;
+
+                fala.onend = () => resolve();
+                fala.onerror = () => resolve();
+                
+                window.speechSynthesis.speak(fala);
+                setTimeout(() => resolve(), 8000);
             });
         }
 
-        database.ref('avisos_unidade').on('value', snap => {
+        // 4. MONITORAMENTO DE AVISOS
+        database.ref('unidades/' + unidadeID + '/avisos').on('value', snap => {
             listaAvisos = [];
             snap.forEach(child => { listaAvisos.push(child.val()); });
             if (!processandoChamada) iniciarCarrossel();
@@ -158,7 +167,7 @@
         function iniciarCarrossel() {
             pararCarrossel();
             if (listaAvisos.length === 0) {
-                document.getElementById('texto-info').innerText = "USF AERO RANCHO IV";
+                document.getElementById('texto-info').innerText = "BEM-VINDO À UNIDADE";
                 return;
             }
             rodarFrase();
@@ -166,17 +175,18 @@
         }
 
         function rodarFrase() {
-            if (processandoChamada) return;
+            if (processandoChamada || listaAvisos.length === 0) return;
             const aviso = listaAvisos[indiceAviso];
-            if(!aviso) return;
             const card = document.getElementById('card-cor');
             const txt = document.getElementById('texto-info');
             const fill = document.getElementById('progresso-fill');
+            
             fill.style.transition = 'none';
             fill.style.width = '0%';
-            fill.style.backgroundColor = aviso.cor;
-            card.style.borderLeftColor = aviso.cor;
+            fill.style.backgroundColor = aviso.cor || '#007bff';
+            card.style.borderLeftColor = aviso.cor || '#007bff';
             txt.innerText = aviso.msg;
+            
             setTimeout(() => {
                 fill.style.transition = 'width 11.5s linear';
                 fill.style.width = '100%';
