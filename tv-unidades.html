@@ -44,6 +44,7 @@
             <div id="txtPaciente" class="paciente">--</div>
             <div id="txtSala" class="sala">AGUARDE</div>
         </div>
+
         <div id="painel-informativo">
             <div class="card-info" id="card-cor">
                 <h1 id="titulo-info">INFORMATIVO</h1>
@@ -59,9 +60,6 @@
     <div class="marquee"><marquee>Bem-vindo à USF Aero Rancho IV • Respeite o fluxo de atendimento • Mantenha o silêncio para não perder sua chamada.</marquee></div>
 
     <script>
-        // --- TRAVA DE SEGURANÇA ---
-        if (sessionStorage.getItem("logado_usf") !== "true") { window.location.href = "index.html"; }
-
         const firebaseConfig = {
             apiKey: "AIzaSyB-LPsGPEGcjMRPcEReNDQdgFWE5iE7Bh0",
             authDomain: "usf-aero-rancho-b6d85.firebaseapp.com",
@@ -92,19 +90,27 @@
                 voltarParaCarrossel();
                 return;
             }
+
             processandoChamada = true;
             pararCarrossel();
+
             const atual = filaDeEspera.shift();
             document.getElementById('area-chamada').style.display = 'block';
             document.getElementById('painel-informativo').style.display = 'none';
             document.getElementById('txtPaciente').innerText = atual.msg;
             document.getElementById('txtSala').innerText = atual.local;
+            
             document.body.classList.remove('piscar-alerta');
             void document.body.offsetWidth;
             document.body.classList.add('piscar-alerta');
+            
             somCampainha.play().catch(e => console.log("Áudio aguardando clique"));
+
             atualizarHistoricoTV(atual.msg, atual.local);
+
+            // Chamada de voz com "Atenção"
             await falarTexto(atual.msg, atual.local);
+
             setTimeout(iniciarProcessamentoFila, 4000);
         }
 
@@ -112,17 +118,34 @@
             return new Promise((resolve) => {
                 try {
                     let localLower = local.toLowerCase();
+                    // Concordância de gênero para o local
                     let prep = (localLower.includes("recepção") || localLower.includes("sala") || localLower.includes("triagem") || localLower.includes("mesa")) ? "à" : "ao";
+                    
+                    // Converte sigla para fala por extenso
                     let nomeParaVoz = nome.replace("PREF.", "Preferencial");
-                    let texto = nome.toUpperCase().includes("SENHA") ? `Atenção. ${nomeParaVoz}. Comparecer ${prep} ${local}` : `Atenção. Paciente ${nomeParaVoz}. Dirija-se ${prep} ${local}`;
+                    
+                    let texto;
+                    if (nome.toUpperCase().includes("SENHA")) {
+                        // Ex: "Atenção. Senha Normal zero um. Comparecer à Recepção zero um."
+                        texto = `Atenção. ${nomeParaVoz}. Comparecer ${prep} ${local}`;
+                    } else {
+                        // Ex: "Atenção. Paciente João da Silva. Dirija-se ao Consultório zero dois."
+                        texto = `Atenção. Paciente ${nomeParaVoz}. Dirija-se ${prep} ${local}`;
+                    }
+                    
                     const fala = new SpeechSynthesisUtterance(texto);
                     fala.lang = 'pt-BR';
                     fala.rate = 0.9;
+                    
                     fala.onend = () => resolve();
                     fala.onerror = () => resolve();
+                    
                     window.speechSynthesis.speak(fala);
+                    
                     setTimeout(() => resolve(), 10000);
-                } catch(e) { resolve(); }
+                } catch(e) {
+                    resolve();
+                }
             });
         }
 
