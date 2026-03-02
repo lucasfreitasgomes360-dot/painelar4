@@ -58,7 +58,6 @@
             margin-bottom: 10px;
         }
 
-        /* Botões Estilizados */
         .btn {
             border: none; border-radius: 10px; padding: 15px; font-weight: bold;
             font-size: 1rem; cursor: pointer; display: flex; align-items: center;
@@ -75,7 +74,6 @@
         .flex-row { display: flex; gap: 10px; }
         .flex-row .btn { width: 50%; }
 
-        /* Status das Senhas */
         .status-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
             background: #fff3cd; padding: 15px; border-radius: 12px;
@@ -84,7 +82,6 @@
         .status-item { font-size: 0.85rem; color: #856404; }
         .status-item b { font-size: 1.1rem; color: #000; }
 
-        /* Histórico */
         .hist-container { margin-top: 25px; border-top: 2px dashed #ddd; padding-top: 20px; }
         .hist-item { 
             background: #fff; border: 1px solid #eee; padding: 12px; 
@@ -99,6 +96,9 @@
             left: 50%; transform: translateX(-50%); opacity: 0; transition: 0.5s; 
         }
         #toast.show { visibility: visible; opacity: 1; top: 50px; }
+
+        /* Estilo para lista de avisos na gerência */
+        .aviso-item-gerencia { background: white; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -166,6 +166,16 @@
                 <button class="btn btn-green" onclick="enviarChamadaNome()">📣 CHAMAR NA TV</button>
             </div>
 
+            <div id="interfaceAvisos" style="display:none; margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px;">
+                <label>Mensagem para TV</label>
+                <input type="text" id="inputAvisoUnidade" placeholder="O que vai aparecer na TV...">
+                <label>Cor do Card</label>
+                <input type="color" id="corAviso" value="#007bff" style="height: 50px;">
+                <input type="hidden" id="editAvisoKey">
+                <button id="btnSalvarAviso" class="btn btn-blue" onclick="salvarAvisoTV()">💾 SALVAR AVISO</button>
+                <div id="listaAvisosGerencia" style="margin-top:15px;"></div>
+            </div>
+
             <div class="hist-container" id="sessaoHistorico" style="display:none">
                 <label>Últimos Chamados: <span id="nomeSalaHistorico" style="color:var(--secondary)"></span></label>
                 <div id="listaHistorico"></div>
@@ -208,6 +218,12 @@
             document.getElementById('stPref').innerText = d.pref;
             document.getElementById('stColeta').innerText = d.coleta;
             document.getElementById('stOdonto').innerText = d.odonto;
+            if(document.getElementById('categoria').value === 'acolhimento'){
+                document.getElementById('inputNormal').value = d.normal;
+                document.getElementById('inputPref').value = d.pref;
+                document.getElementById('inputColeta').value = d.coleta;
+                document.getElementById('inputOdonto').value = d.odonto;
+            }
         });
 
         function trocouCategoria() {
@@ -227,12 +243,14 @@
             document.getElementById('interfaceAcolhimento').style.display = (cat === 'acolhimento') ? 'block' : 'none';
             document.getElementById('interfaceRecepcao').style.display = (cat === 'recepcao') ? 'block' : 'none';
             document.getElementById('interfaceNome').style.display = (config[cat].tipo === 'nome') ? 'block' : 'none';
+            document.getElementById('interfaceAvisos').style.display = (cat === 'gerencia') ? 'block' : 'none';
             document.getElementById('interfaceColeta').style.display = (salaAtual === "Sala de Coleta") ? 'block' : 'none';
             document.getElementById('selecaoSala').style.display = (cat === 'acolhimento') ? 'none' : 'block';
             document.getElementById('sessaoHistorico').style.display = (cat !== 'acolhimento') ? 'block' : 'none';
             document.getElementById('painelStatus').style.display = (cat === 'recepcao' || salaAtual === "Sala de Coleta") ? 'block' : 'none';
             document.getElementById('areaChamada').style.display = "block";
             renderizarHistorico();
+            if(cat === 'gerencia') atualizarListaAvisos();
         }
 
         function gerarSenha(key, prefixo) {
@@ -250,7 +268,7 @@
             const sala = document.getElementById('minhaSala').value;
             database.ref('fila_chamadas').push({ msg: texto, local: sala, hora: Date.now() });
             if (!historicosPorSala[sala]) historicosPorSala[sala] = [];
-            historicosPorSala[sala].unshift({ texto: texto, hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) });
+            historicosPorSala[sala].unshift({ texto: texto, hora: new Date().toLocaleTimeString() });
             if(historicosPorSala[sala].length > 5) historicosPorSala[sala].pop();
             renderizarHistorico();
         }
@@ -276,6 +294,49 @@
             };
             database.ref('acolhimento').set(d).then(() => mostrarToast("Senhas sincronizadas!"));
         }
+
+        // FUNÇÕES DE AVISO RESTAURADAS
+        function salvarAvisoTV() {
+            const msg = document.getElementById('inputAvisoUnidade').value.trim();
+            const cor = document.getElementById('corAviso').value;
+            const key = document.getElementById('editAvisoKey').value;
+            if(!msg) return;
+            if(key) {
+                database.ref('avisos_unidade/' + key).update({msg, cor}).then(() => {
+                    document.getElementById('editAvisoKey').value = "";
+                    document.getElementById('btnSalvarAviso').innerText = "💾 SALVAR AVISO";
+                    mostrarToast("Aviso alterado!");
+                });
+            } else {
+                database.ref('avisos_unidade').push({msg, cor}).then(() => mostrarToast("Aviso criado!"));
+            }
+            document.getElementById('inputAvisoUnidade').value = "";
+        }
+
+        function atualizarListaAvisos() {
+            database.ref('avisos_unidade').on('value', snap => {
+                const container = document.getElementById('listaAvisosGerencia');
+                container.innerHTML = "<b>Avisos Ativos:</b><br>";
+                snap.forEach(child => {
+                    const data = child.val();
+                    container.innerHTML += `
+                    <div class="aviso-item-gerencia">
+                        <div><span style="color:${data.cor}">●</span> ${data.msg}</div>
+                        <div>
+                            <button onclick="prepararEdicao('${child.key}', '${data.msg}', '${data.cor}')">✏️</button>
+                            <button onclick="excluirAviso('${child.key}')">❌</button>
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+        function prepararEdicao(key, msg, cor) {
+            document.getElementById('inputAvisoUnidade').value = msg;
+            document.getElementById('corAviso').value = cor;
+            document.getElementById('editAvisoKey').value = key;
+            document.getElementById('btnSalvarAviso').innerText = "💾 SALVAR ALTERAÇÃO";
+        }
+        function excluirAviso(key) { if(confirm("Excluir este aviso?")) database.ref('avisos_unidade/'+key).remove(); }
 
         function resetContadores() {
             if(confirm("Zerar senhas do dia?")) {
