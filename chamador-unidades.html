@@ -94,7 +94,7 @@
             </div>
 
             <div id="interfaceNome" style="display:none; margin-top: 15px;">
-                <label>Nome do Paciente</label>
+                <label id="labelNome">Nome do Paciente</label>
                 <input type="text" id="nomePaciente" placeholder="Digite o nome...">
                 <button class="btn btn-green" onclick="enviarChamadaNome()">📣 CHAMAR NA TV</button>
             </div>
@@ -156,6 +156,18 @@
             if (!cat) { document.getElementById('areaChamada').style.display="none"; return; }
             selSala.innerHTML = "";
             config[cat].salas.forEach(s => { let o = document.createElement('option'); o.value = s; o.innerText = s; selSala.appendChild(o); });
+            
+            // Ajuste do texto para Gerência
+            const labelNome = document.getElementById('labelNome');
+            const inputNome = document.getElementById('nomePaciente');
+            if(cat === 'gerencia') {
+                labelNome.innerText = "Nome do Colaborador";
+                inputNome.placeholder = "Digite o nome do colaborador...";
+            } else {
+                labelNome.innerText = "Nome do Paciente";
+                inputNome.placeholder = "Digite o nome...";
+            }
+
             configurarTela();
         }
 
@@ -183,7 +195,18 @@
 
         function enviarChamadaNome() {
             const input = document.getElementById('nomePaciente');
-            if(input.value.trim() !== "") { enviarParaFirebase(input.value.trim()); input.value = ""; mostrarToast("Enviado!"); }
+            const cat = document.getElementById('categoria').value;
+            let texto = input.value.trim();
+            
+            if(texto !== "") { 
+                // Se for gerência, adiciona um marcador para a TV saber que é colaborador
+                if(cat === 'gerencia') {
+                    texto = "COLABORADOR: " + texto;
+                }
+                enviarParaFirebase(texto); 
+                input.value = ""; 
+                mostrarToast("Enviado!"); 
+            }
         }
 
         function enviarParaFirebase(texto) {
