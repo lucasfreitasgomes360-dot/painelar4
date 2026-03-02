@@ -106,9 +106,27 @@
         function falarTexto(nome, local) {
             return new Promise((resolve) => {
                 window.speechSynthesis.cancel();
-                let texto = nome.toUpperCase().includes("SENHA") ? `Atenção. ${nome}. Comparecer ao local ${local}` : `Atenção. Paciente ${nome}. Dirija-se ao local ${local}`;
-                const fala = new SpeechSynthesisUtterance(texto); fala.lang = 'pt-BR'; fala.rate = 0.9;
-                fala.onend = () => resolve(); window.speechSynthesis.speak(fala);
+                
+                // Lógica de concordância revisada
+                let loc = local.toLowerCase();
+                let prep = "ao"; // Padrão masculino (Consultório, Auditório, Serviço Social)
+                
+                if (loc.includes("recepção") || loc.includes("sala") || loc.includes("triagem") || loc.includes("mesa") || loc.includes("gerência")) {
+                    prep = "à"; // Feminino
+                }
+
+                let texto = "";
+                if (nome.toUpperCase().includes("SENHA")) {
+                    texto = `Atenção. ${nome}. Comparecer ${prep} ${local}`;
+                } else {
+                    texto = `Atenção. Paciente ${nome}. Dirija-se ${prep} ${local}`;
+                }
+
+                const fala = new SpeechSynthesisUtterance(texto);
+                fala.lang = 'pt-BR';
+                fala.rate = 0.9;
+                fala.onend = () => resolve();
+                window.speechSynthesis.speak(fala);
                 setTimeout(resolve, 8000);
             });
         }
