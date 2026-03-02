@@ -6,36 +6,45 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        h2 { color: #003366; text-align: center; margin-bottom: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; max-width: 420px; position: relative; }
+        h2 { color: #003366; text-align: center; margin-bottom: 20px; font-size: 1.5rem; }
         .categoria-selector { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #dee2e6; }
-        label { font-weight: bold; display: block; margin-top: 15px; font-size: 0.9rem; }
-        select, input { width: 100%; padding: 12px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
-        .btn-update { background: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-normal { background: #0056b3; color: white; border: none; padding: 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 48%; }
-        .btn-preferencial { background: #ff8c00; color: white; border: none; padding: 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 48%; }
+        label { font-weight: bold; display: block; margin-top: 15px; font-size: 0.9rem; color: #333; }
+        select, input { width: 100%; padding: 12px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; transition: border-color 0.3s; }
+        select:focus, input:focus { outline: none; border-color: #007bff; }
+        .btn-update { background: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; transition: opacity 0.2s; }
+        .btn-update:hover { opacity: 0.9; }
+        .btn-normal { background: #0056b3; color: white; border: none; padding: 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 48%; box-shadow: 0 4px 6px rgba(0,86,179,0.2); }
+        .btn-preferencial { background: #ff8c00; color: white; border: none; padding: 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 48%; box-shadow: 0 4px 6px rgba(255,140,0,0.2); }
         .btn-odonto { background: #17a2b8; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
         .btn-coleta { background: #6f42c1; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 15px; }
-        
-        .painel-status { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #856404; text-align: center; }
-        .painel-status b { font-size: 1.1rem; color: #000; }
-
+        .painel-status { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 0.95rem; color: #856404; text-align: center; }
+        .painel-status b { font-size: 1.2rem; color: #000; }
         .alerta-instrucao { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem; text-align: center; font-weight: bold; }
         .flex-buttons { display: flex; justify-content: space-between; margin-top: 15px; }
-        .btn-chamar { width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold; margin-top: 20px; cursor: pointer; }
-        .btn-reset { background: none; border: none; color: #999; font-size: 0.7rem; cursor: pointer; text-decoration: underline; margin-top: 15px; width: 100%; }
-        .historico-local { margin-top: 20px; border-top: 2px solid #003366; padding-top: 10px; }
-        .item-historico { background: #fff; border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; margin-bottom: 5px; font-size: 0.85rem; }
+        .btn-chamar { width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold; margin-top: 20px; cursor: pointer; box-shadow: 0 4px 6px rgba(40,167,69,0.2); }
+        .btn-reset { background: none; border: none; color: #999; font-size: 0.75rem; cursor: pointer; text-decoration: underline; margin-top: 25px; width: 100%; }
+        .historico-local { margin-top: 20px; border-top: 2px solid #e9ecef; padding-top: 15px; }
+        .item-historico { background: #f8f9fa; border: 1px solid #ddd; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Notificação Toast */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1; top: 30px; left: 50%; transform: translateX(-50%); font-size: 0.9rem; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.5s, top 0.5s; }
+        #toast.show { visibility: visible; top: 40px; opacity: 1; }
+        #toast.success { background-color: #28a745; }
+        #toast.error { background-color: #dc3545; }
     </style>
 </head>
 <body>
+
+    <div id="toast">Mensagem do Sistema</div>
+
     <div class="box">
         <h2>USF AERO RANCHO IV</h2>
         <div class="categoria-selector">
             <label>Quem é você?</label>
             <select id="categoria" onchange="trocouCategoria()">
-                <option value="">-- Selecione --</option>
+                <option value="">-- Selecione o Setor --</option>
                 <option value="acolhimento">ACOLHIMENTO (Entrega Senhas)</option>
                 <option value="recepcao">RECEPÇÃO (Chama Senhas)</option>
                 <option value="medico">MÉDICO</option>
@@ -49,61 +58,62 @@
         <div id="areaChamada" style="display:none">
             
             <div id="painelInformativoStatus" class="painel-status" style="display:none">
-                <strong>Senhas no Acolhimento:</strong><br>
-                Normal: <b id="stNormal">0</b> | Pref: <b id="stPref">0</b><br>
-                Coleta: <b id="stColeta">0</b> | Odonto: <b id="stOdonto">0</b>
+                <strong>Senhas no Acolhimento:</strong><br><br>
+                Normal: <b id="stNormal">0</b> &nbsp;|&nbsp; Pref: <b id="stPref">0</b><br>
+                Coleta: <b id="stColeta">0</b> &nbsp;|&nbsp; Odonto: <b id="stOdonto">0</b>
             </div>
 
             <div id="interfaceAcolhimento" style="display:none">
                 <div class="alerta-instrucao">ℹ️ Informe a ÚLTIMA senha entregue.</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div><small>Normal:</small><input type="number" id="inputNormal" value="0"></div>
-                    <div><small>Pref:</small><input type="number" id="inputPref" value="0"></div>
-                    <div><small>Coleta:</small><input type="number" id="inputColeta" value="0"></div>
-                    <div><small>Odonto:</small><input type="number" id="inputOdonto" value="0"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div><small>Normal:</small><input type="number" id="inputNormal" min="0" value="0"></div>
+                    <div><small>Pref:</small><input type="number" id="inputPref" min="0" value="0"></div>
+                    <div><small>Coleta:</small><input type="number" id="inputColeta" min="0" value="0"></div>
+                    <div><small>Odonto:</small><input type="number" id="inputOdonto" min="0" value="0"></div>
                 </div>
-                <button class="btn-update" onclick="atualizarEntregues()">ATUALIZAR RECEPÇÃO</button>
+                <button class="btn-update" onclick="atualizarEntregues()" style="margin-top:20px;">ATUALIZAR RECEPÇÃO</button>
             </div>
 
             <div id="interfaceRecepcao" style="display:none">
                 <div class="flex-buttons">
-                    <button class="btn-normal" onclick="gerarSenha('NORMAL', 'SENHA')">SENHA</button>
-                    <button class="btn-preferencial" onclick="gerarSenha('PREFERENCIAL', 'SENHA PREF.')">PREF.</button>
+                    <button class="btn-normal" onclick="gerarSenha('NORMAL', 'SENHA')">SENHA NORMAL</button>
+                    <button class="btn-preferencial" onclick="gerarSenha('PREFERENCIAL', 'SENHA PREF.')">SENHA PREF.</button>
                 </div>
                 <button class="btn-odonto" onclick="gerarSenha('ODONTO', 'SENHA ODONTO')">SENHA ODONTOLOGIA</button>
             </div>
 
             <div id="selecaoSala">
-                <label>Selecione seu Local:</label>
+                <label>Selecione seu Local de Atendimento:</label>
                 <select id="minhaSala" onchange="configurarTela()"></select>
             </div>
 
-            <div id="interfaceColeta" style="display:none; margin-top:10px;">
-                <button class="btn-coleta" onclick="gerarSenha('COLETA', 'SENHA COLETA')">CHAMAR SENHA COLETA</button>
+            <div id="interfaceColeta" style="display:none; margin-top:15px;">
+                <button class="btn-coleta" onclick="gerarSenha('COLETA', 'SENHA COLETA')">CHAMAR SENHA DA COLETA</button>
             </div>
 
             <div id="interfaceNome" style="display:none">
                 <label>Nome do Paciente:</label>
-                <input type="text" id="nomePaciente" placeholder="Nome completo">
+                <input type="text" id="nomePaciente" placeholder="Ex: João da Silva" onkeypress="if(event.key === 'Enter') enviarChamadaNome()">
                 <button class="btn-chamar" onclick="enviarChamadaNome()">CHAMAR NA TV</button>
             </div>
 
-            <div id="interfaceAvisos" style="display:none; margin-top:20px; border-top:1px solid #ddd;">
-                <label>Mensagem para TV:</label>
-                <input type="text" id="inputAvisoUnidade">
-                <label>Cor do Card:</label>
-                <input type="color" id="corAviso" value="#007bff" style="height:40px;">
+            <div id="interfaceAvisos" style="display:none; margin-top:25px; border-top:1px solid #ddd;">
+                <h3 style="color:#003366; font-size:1.1rem; margin-bottom:10px;">Gestão de Avisos</h3>
+                <label>Mensagem para a TV:</label>
+                <input type="text" id="inputAvisoUnidade" placeholder="Digite o aviso...">
+                <label>Cor do Card na TV:</label>
+                <input type="color" id="corAviso" value="#007bff" style="height:45px; padding:2px;">
                 <input type="hidden" id="editAvisoKey">
                 <button id="btnSalvarAviso" class="btn-update" onclick="salvarAvisoTV()">SALVAR AVISO</button>
-                <div id="listaAvisosGerencia" style="margin-top:10px; font-size:0.8rem; background:#f8f9fa; padding:5px;"></div>
+                <div id="listaAvisosGerencia" style="margin-top:15px; font-size:0.85rem; background:#f8f9fa; padding:10px; border-radius:6px; max-height: 200px; overflow-y: auto;"></div>
             </div>
 
             <div class="historico-local" id="sessaoHistorico" style="display:none;">
-                <h3>Histórico: <span id="nomeSalaHistorico" style="color:#d39e00"></span></h3>
+                <h3 style="font-size:1rem; margin-bottom:10px; color:#555;">Histórico Local: <span id="nomeSalaHistorico" style="color:#0056b3"></span></h3>
                 <div id="listaHistorico"></div>
             </div>
 
-            <button class="btn-reset" onclick="resetContadores()">Reiniciar Sistema (Protegido)</button>
+            <button class="btn-reset" onclick="resetContadores()">Reiniciar Sistema de Senhas (Requer Autorização)</button>
         </div>
     </div>
 
@@ -128,6 +138,13 @@
             gerencia: { salas: ["Gerência"], tipo: 'nome' }
         };
 
+        function mostrarToast(mensagem, tipo = 'success') {
+            const toast = document.getElementById("toast");
+            toast.innerText = mensagem;
+            toast.className = `show ${tipo}`;
+            setTimeout(() => { toast.className = toast.className.replace(`show ${tipo}`, ""); }, 3000);
+        }
+
         database.ref('acolhimento').on('value', snap => {
             const d = snap.val() || {normal:0, pref:0, coleta:0, odonto:0};
             document.getElementById('stNormal').innerText = d.normal;
@@ -146,7 +163,8 @@
         function trocouCategoria() {
             const cat = document.getElementById('categoria').value;
             const selSala = document.getElementById('minhaSala');
-            if (!cat) return;
+            if (!cat) { document.getElementById('areaChamada').style.display="none"; return; }
+            
             selSala.innerHTML = "";
             config[cat].salas.forEach(s => { 
                 let o = document.createElement('option'); o.value = s; o.innerText = s; selSala.appendChild(o); 
@@ -158,7 +176,7 @@
             const cat = document.getElementById('categoria').value;
             const salaAtual = document.getElementById('minhaSala').value;
             const area = document.getElementById('areaChamada');
-            if (!cat) { area.style.display="none"; return; }
+            if (!cat) return;
 
             document.getElementById('interfaceAcolhimento').style.display = (cat === 'acolhimento') ? 'block' : 'none';
             document.getElementById('interfaceRecepcao').style.display = (cat === 'recepcao') ? 'block' : 'none';
@@ -182,18 +200,28 @@
                 coleta: parseInt(document.getElementById('inputColeta').value) || 0,
                 odonto: parseInt(document.getElementById('inputOdonto').value) || 0
             };
-            database.ref('acolhimento').set(dados).then(() => alert("Senhas atualizadas para os setores!"));
+            database.ref('acolhimento').set(dados).then(() => mostrarToast("Senhas sincronizadas com sucesso!"));
         }
 
         function gerarSenha(key, prefixo) {
             database.ref('contador/' + key).transaction(v => (v || 0) + 1, (err, comm, snap) => {
-                if (comm) enviarParaFirebase(`${prefixo} ${String(snap.val()).padStart(2, '0')}`);
+                if (comm) {
+                    enviarParaFirebase(`${prefixo} ${String(snap.val()).padStart(2, '0')}`);
+                    mostrarToast(`Senha ${prefixo} enviada para a TV!`);
+                }
             });
         }
 
         function enviarChamadaNome() {
-            const nome = document.getElementById('nomePaciente').value.trim();
-            if(nome) { enviarParaFirebase(nome); document.getElementById('nomePaciente').value = ""; }
+            const nomeInput = document.getElementById('nomePaciente');
+            const nome = nomeInput.value.trim();
+            if(nome) { 
+                enviarParaFirebase(nome); 
+                nomeInput.value = ""; 
+                mostrarToast("Paciente chamado na TV!");
+            } else {
+                mostrarToast("Por favor, digite o nome do paciente.", "error");
+            }
         }
 
         function enviarParaFirebase(texto) {
@@ -201,7 +229,7 @@
             database.ref('fila_chamadas').push({ msg: texto, local: sala, hora: Date.now() });
             
             if (!historicosPorSala[sala]) historicosPorSala[sala] = [];
-            historicosPorSala[sala].unshift({ texto: texto, hora: new Date().toLocaleTimeString() });
+            historicosPorSala[sala].unshift({ texto: texto, hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) });
             if(historicosPorSala[sala].length > 5) historicosPorSala[sala].pop();
             renderizarHistorico();
         }
@@ -211,11 +239,17 @@
             const lista = document.getElementById('listaHistorico');
             if(!lista) return; lista.innerHTML = "";
             document.getElementById('nomeSalaHistorico').innerText = sala;
-            if (historicosPorSala[sala]) {
+            
+            if (historicosPorSala[sala] && historicosPorSala[sala].length > 0) {
                 historicosPorSala[sala].forEach(item => {
-                    lista.innerHTML += `<div class="item-historico"><b>${item.texto}</b> - ${item.hora} <br>
-                    <button style="background:#ffc107; border:none; padding:4px; border-radius:4px; cursor:pointer;" onclick="enviarParaFirebase('${item.texto}')">RECHAMAR</button></div>`;
+                    lista.innerHTML += `
+                    <div class="item-historico">
+                        <div><b>${item.texto}</b> <span style="color:#888; font-size:0.75rem; margin-left:5px;">${item.hora}</span></div>
+                        <button style="background:#ffc107; border:none; padding:6px 10px; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="enviarParaFirebase('${item.texto}')">Rechamar</button>
+                    </div>`;
                 });
+            } else {
+                lista.innerHTML = "<div style='color:#999; font-size:0.85rem; text-align:center; padding:10px;'>Nenhuma chamada recente neste local.</div>";
             }
         }
 
@@ -223,13 +257,19 @@
             const msg = document.getElementById('inputAvisoUnidade').value.trim();
             const cor = document.getElementById('corAviso').value;
             const key = document.getElementById('editAvisoKey').value;
-            if(!msg) return;
+            
+            if(!msg) { mostrarToast("Digite o texto do aviso.", "error"); return; }
+            
             if(key) {
-                database.ref('avisos_unidade/' + key).update({msg, cor});
-                document.getElementById('editAvisoKey').value = "";
-                document.getElementById('btnSalvarAviso').innerText = "SALVAR AVISO";
+                database.ref('avisos_unidade/' + key).update({msg, cor}).then(() => {
+                    mostrarToast("Aviso alterado com sucesso!");
+                    document.getElementById('editAvisoKey').value = "";
+                    document.getElementById('btnSalvarAviso').innerText = "SALVAR NOVO AVISO";
+                });
             } else {
-                database.ref('avisos_unidade').push({msg, cor});
+                database.ref('avisos_unidade').push({msg, cor}).then(() => {
+                    mostrarToast("Aviso adicionado na TV!");
+                });
             }
             document.getElementById('inputAvisoUnidade').value = "";
         }
@@ -237,35 +277,51 @@
         function atualizarListaAvisos() {
             database.ref('avisos_unidade').on('value', snap => {
                 const container = document.getElementById('listaAvisosGerencia');
-                container.innerHTML = "<b>Avisos Ativos:</b><br>";
+                container.innerHTML = "<b style='display:block; margin-bottom:10px;'>Avisos Ativos na TV:</b>";
                 const data = snap.val();
+                
+                if(!data) {
+                    container.innerHTML += "<div style='color:#777; font-style:italic;'>Nenhum aviso configurado.</div>";
+                    return;
+                }
+                
                 for(let key in data) {
-                    container.innerHTML += `<div style="padding:5px; border-bottom:1px solid #ddd;">
-                        <span style="color:${data[key].cor}">●</span> ${data[key].msg}
-                        <button onclick="prepararEdicao('${key}', '${data[key].msg}', '${data[key].cor}')">Edit</button>
-                        <button onclick="excluirAviso('${key}')" style="background:red; color:white; border:none;">X</button>
+                    container.innerHTML += `
+                    <div style="padding:8px; border-bottom:1px solid #e9ecef; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="flex-grow:1; padding-right:10px;">
+                            <span style="color:${data[key].cor}; font-size:1.2rem; vertical-align:middle;">●</span> 
+                            <span style="vertical-align:middle;">${data[key].msg}</span>
+                        </div>
+                        <div style="min-width: 90px; text-align:right;">
+                            <button onclick="prepararEdicao('${key}', '${data[key].msg}', '${data[key].cor}')" style="background:#007bff; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; margin-right:5px;">Editar</button>
+                            <button onclick="excluirAviso('${key}')" style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;">X</button>
+                        </div>
                     </div>`;
                 }
             });
         }
+
         function prepararEdicao(key, msg, cor) {
             document.getElementById('inputAvisoUnidade').value = msg;
             document.getElementById('corAviso').value = cor;
             document.getElementById('editAvisoKey').value = key;
             document.getElementById('btnSalvarAviso').innerText = "SALVAR ALTERAÇÃO";
         }
-        function excluirAviso(key) { if(confirm("Excluir?")) database.ref('avisos_unidade/'+key).remove(); }
+        
+        function excluirAviso(key) { 
+            if(confirm("Tem certeza que deseja remover este aviso da TV?")) {
+                database.ref('avisos_unidade/'+key).remove().then(() => mostrarToast("Aviso removido."));
+            }
+        }
 
         function resetContadores() {
-            const inputSenha = prompt("Digite a senha para reiniciar o sistema:");
-            
-            // A senha está ofuscada em Base64 para proteção
+            const inputSenha = prompt("Digite a senha da gerência para reiniciar as senhas:");
             if(inputSenha && btoa(inputSenha) === "YWVyb3JhbmNob2l2") {
                 database.ref('contador').set({ NORMAL: 0, PREFERENCIAL: 0, COLETA: 0, ODONTO: 0 });
                 database.ref('acolhimento').set({ normal: 0, pref: 0, coleta: 0, odonto: 0 });
-                alert("Sistema resetado com sucesso!");
+                mostrarToast("Sistema resetado com sucesso!");
             } else if (inputSenha) {
-                alert("Senha incorreta. Ação cancelada.");
+                mostrarToast("Senha incorreta. Ação cancelada.", "error");
             }
         }
     </script>
