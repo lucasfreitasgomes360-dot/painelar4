@@ -116,23 +116,16 @@
         
         let loc = local.toLowerCase();
         let prep = "ao"; 
-        if (loc.includes("recepção") || loc.includes("Triagem") || loc.includes("vacina") || loc.includes("coleta") || loc.includes("sala") || loc.includes("mesa") || loc.includes("gerência")) {
+        if (loc.includes("recepção") || loc.includes("triagem") || loc.includes("vacina") || loc.includes("coleta") || loc.includes("sala") || loc.includes("mesa") || loc.includes("gerência")) {
             prep = "à"; 
         }
 
-        let nomeUpper = nome.toUpperCase();
-        let textoParaFalar = nome;
-
-        // --- AJUSTE PARA FALAR POR EXTENSO ---
-        // Se o texto contiver "PREF.", trocamos por "PREFERENCIAL" apenas na voz
-        textoParaFalar = textoParaFalar.replace(/PREF\./gi, "PREFERENCIAL");
-        // -------------------------------------
-
+        let textoParaFalar = nome.replace(/PREF\./gi, "PREFERENCIAL");
         let textoFinal = "";
 
-        if (nomeUpper.includes("SENHA")) {
+        if (nome.toUpperCase().includes("SENHA")) {
             textoFinal = `Atenção. ${textoParaFalar}. Dirija-se ${prep} ${local}`;
-        } else if (nomeUpper.includes("COLABORADOR:")) {
+        } else if (nome.toUpperCase().includes("COLABORADOR:")) {
             let nomeLimpo = textoParaFalar.replace(/COLABORADOR: /gi, "");
             textoFinal = `Atenção. Colaborador ${nomeLimpo}. Dirija-se ${prep} ${local}`;
         } else {
@@ -140,13 +133,21 @@
         }
 
         const fala = new SpeechSynthesisUtterance(textoFinal);
+        
+        // --- BUSCA POR VOZES MAIS NATURAIS DO NAVEGADOR ---
+        const vozes = window.speechSynthesis.getVoices();
+        // Tenta encontrar uma voz do Google (geralmente mais natural que a do Windows)
+        const vozPreferencial = vozes.find(v => v.name.includes('Google') && v.lang.startsWith('pt')) 
+                              || vozes.find(v => v.lang.startsWith('pt'));
+        
+        if (vozPreferencial) fala.voice = vozPreferencial;
+        
         fala.lang = 'pt-BR';
         fala.rate = 0.9;
         fala.onend = () => resolve();
         fala.onerror = () => resolve();
         
         window.speechSynthesis.speak(fala);
-        setTimeout(resolve, 8000);
     });
 }
 
