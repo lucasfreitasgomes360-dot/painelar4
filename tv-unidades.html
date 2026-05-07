@@ -115,9 +115,9 @@
         window.speechSynthesis.cancel();
         
         let loc = local.toLowerCase();
-        let prep = "ao"; 
+        let prep = "à"; 
         if (loc.includes("recepção") || loc.includes("Triagem") || loc.includes("vacina") || loc.includes("coleta") || loc.includes("sala") || loc.includes("mesa") || loc.includes("gerência")) {
-            prep = "à"; 
+            prep = "ao"; 
         }
 
         let nomeUpper = nome.toUpperCase();
