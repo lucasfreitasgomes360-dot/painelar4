@@ -113,12 +113,22 @@
         function falarTexto(nome, local) {
     return new Promise((resolve) => {
         window.speechSynthesis.cancel();
+
+        const loc = local.toLowerCase();
+        const femininos = ["recepção", "triagem", "vacina", "coleta", "sala", "mesa", "gerência"];
         
-        let loc = local.toLowerCase();
-        let prep = "à"; 
-        if (loc.includes("recepção") || loc.includes("Triagem") || loc.includes("vacina") || loc.includes("coleta") || loc.includes("sala") || loc.includes("mesa") || loc.includes("gerência")) {
-            prep = "ao"; 
-        }
+        // Verifica se alguma das palavras da lista está contida na variável 'loc'
+        const prep = femininos.some(p => loc.includes(p)) ? "à" : "ao";
+
+        const mensagem = new SpeechSynthesisUtterance(`${nome}, compareça ${prep} ${local}`);
+        
+        mensagem.onend = () => {
+            resolve(); // Resolve a promessa apenas quando terminar de falar
+        };
+
+        window.speechSynthesis.speak(mensagem);
+    });
+}
 
         let nomeUpper = nome.toUpperCase();
         let textoParaFalar = nome;
