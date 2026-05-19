@@ -91,6 +91,45 @@
             if (!processandoChamada) iniciarCarrossel();
         });
 
+        // Função auxiliar para aplicar a LGPD mascarando o nome
+        function aplicarLGPD(texto) {
+            let nomeLimpo = texto.replace(/COLABORADOR: /gi, "").trim();
+            
+            // Se for uma senha, não altera
+            if (nomeLimpo.toUpperCase().includes("SENHA")) {
+                return nomeLimpo;
+            }
+
+            let partes = nomeLimpo.split(/\s+/);
+            // Ignora conectores comuns para a contagem de sobrenomes se necessário,
+            // mas aqui filtramos conectores de tamanho <= 3 para não abreviá-los de forma estranha (ex: "de", "da", "do")
+            let partesFiltradas = partes.filter(p => p.toLowerCase() !== "de" && p.toLowerCase() !== "da" && p.toLowerCase() !== "do" && p.toLowerCase() !== "dos" && p.toLowerCase() !== "das");
+
+            if (partesFiltradas.length <= 2) {
+                return nomeLimpo; // Se já for só nome e um sobrenome, mantém original
+            }
+
+            let primeiroNome = partes[0];
+            let ultimoNome = partes[partes.length - 1];
+            
+            // Monta o meio abreviado mantendo a estrutura original de posições
+            let nomeFormatado = primeiroNome;
+            
+            for (let i = 1; i < partes.length - 1; i++) {
+                let p = partes[i];
+                let pLower = p.toLowerCase();
+                if (pLower === "de" || pLower === "da" || pLower === "do" || pLower === "dos" || pLower === "das") {
+                    // Opcional: pode omitir ou manter os conectores. Vamos mantê-los para soar natural.
+                    nomeFormatado += " " + pLower;
+                } else {
+                    nomeFormatado += " " + p.charAt(0).toUpperCase() + ".";
+                }
+            }
+            
+            nomeFormatado += " " + ultimoNome;
+            return nomeFormatado;
+        }
+
         async function iniciarFila() {
             if (filaDeEspera.length === 0) { 
                 processandoChamada = false; document.getElementById('area-chamada').style.display = 'none'; 
@@ -98,7 +137,10 @@
             }
             processandoChamada = true; clearInterval(intervaloCarrossel);
             const atual = filaDeEspera.shift();
-            let msgExibida = atual.msg.replace("COLABORADOR: ", "");
+            
+            // Aplica a mascara da LGPD no nome que vai para a tela
+            let msgExibida = aplicarLGPD(atual.msg);
+            
             document.getElementById('area-chamada').style.display = 'block';
             document.getElementById('painel-informativo').style.display = 'none';
             document.getElementById('txtPaciente').innerText = msgExibida;
@@ -106,48 +148,48 @@
             document.body.classList.remove('piscar-alerta'); void document.body.offsetWidth; document.body.classList.add('piscar-alerta');
             somCampainha.play().catch(e => {});
             atualizarHistTV(msgExibida, atual.local);
-            await falarTexto(atual.msg, atual.local);
+            
+            // Passa o nome já tratado pela LGPD para a voz também
+            await falarTexto(atual.msg, msgExibida, atual.local);
             setTimeout(iniciarFila, 4000);
         }
 
-        function falarTexto(nome, local) {
-    return new Promise((resolve) => {
-        window.speechSynthesis.cancel();
-        
-        let loc = local.toLowerCase();
-        let prep = "ao"; 
-        if (loc.includes("recepção") || loc.includes("Triagem") || loc.includes("vacina") || loc.includes("coleta") || loc.includes("sala") || loc.includes("mesa") || loc.includes("gerência")) {
-            prep = "à"; 
+        function falarTexto(msgOriginal, nomeTratado, local) {
+            return new Promise((resolve) => {
+                window.speechSynthesis.cancel();
+                
+                let loc = local.toLowerCase();
+                let prep = "ao"; 
+                if (loc.includes("recepção") || loc.includes("triagem") || loc.includes("vacina") || loc.includes("coleta") || loc.includes("sala") || loc.includes("mesa") || loc.includes("gerência")) {
+                    prep = "à"; 
+                }
+                let msgUpper = msgOriginal.toUpperCase();
+                let textoParaFalar = nomeTratado;
+
+                // --- AJUSTE PARA FALAR POR EXTENSO ---
+                textoParaFalar = textoParaFalar.replace(/PREF\./gi, "PREFERENCIAL");
+                // -------------------------------------
+
+                let textoFinal = "";
+
+                if (msgUpper.includes("SENHA")) {
+                    textoFinal = `Atenção. ${textoParaFalar}. Dirija-se ${prep} ${local}`;
+                } else if (msgUpper.includes("COLABORADOR:")) {
+                    textoFinal = `Atenção. Colaborador ${textoParaFalar}. Dirija-se ${prep} ${local}`;
+                } else {
+                    textoFinal = `Atenção. Paciente ${textoParaFalar}. Dirija-se ${prep} ${local}`;
+                }
+
+                const fala = new SpeechSynthesisUtterance(textoFinal);
+                fala.lang = 'pt-BR';
+                fala.rate = 0.9;
+                fala.onend = () => resolve();
+                fala.onerror = () => resolve();
+                
+                window.speechSynthesis.speak(fala);
+                setTimeout(resolve, 8000);
+            });
         }
-        let nomeUpper = nome.toUpperCase();
-        let textoParaFalar = nome;
-
-        // --- AJUSTE PARA FALAR POR EXTENSO ---
-        // Se o texto contiver "PREF.", trocamos por "PREFERENCIAL" apenas na voz
-        textoParaFalar = textoParaFalar.replace(/PREF\./gi, "PREFERENCIAL");
-        // -------------------------------------
-
-        let textoFinal = "";
-
-        if (nomeUpper.includes("SENHA")) {
-            textoFinal = `Atenção. ${textoParaFalar}. Dirija-se ${prep} ${local}`;
-        } else if (nomeUpper.includes("COLABORADOR:")) {
-            let nomeLimpo = textoParaFalar.replace(/COLABORADOR: /gi, "");
-            textoFinal = `Atenção. Colaborador ${nomeLimpo}. Dirija-se ${prep} ${local}`;
-        } else {
-            textoFinal = `Atenção. Paciente ${textoParaFalar}. Dirija-se ${prep} ${local}`;
-        }
-
-        const fala = new SpeechSynthesisUtterance(textoFinal);
-        fala.lang = 'pt-BR';
-        fala.rate = 0.9;
-        fala.onend = () => resolve();
-        fala.onerror = () => resolve();
-        
-        window.speechSynthesis.speak(fala);
-        setTimeout(resolve, 8000);
-    });
-}
 
         function iniciarCarrossel() {
             clearInterval(intervaloCarrossel);
@@ -183,4 +225,3 @@
     </script>
 </body>
 </html>
-
