@@ -91,43 +91,24 @@
             if (!processandoChamada) iniciarCarrossel();
         });
 
-        // Função auxiliar para aplicar a LGPD mascarando o nome
-        function aplicarLGPD(texto) {
-            let nomeLimpo = texto.replace(/COLABORADOR: /gi, "").trim();
+        // Função auxiliar para abreviar os sobrenomes em conformidade com a LGPD
+        function abreviarNome(nomeCompleto) {
+            let partes = nomeCompleto.trim().split(/\s+/);
+            if (partes.length <= 1) return nomeCompleto;
             
-            // Se for uma senha, não altera
-            if (nomeLimpo.toUpperCase().includes("SENHA")) {
-                return nomeLimpo;
-            }
-
-            let partes = nomeLimpo.split(/\s+/);
-            // Ignora conectores comuns para a contagem de sobrenomes se necessário,
-            // mas aqui filtramos conectores de tamanho <= 3 para não abreviá-los de forma estranha (ex: "de", "da", "do")
-            let partesFiltradas = partes.filter(p => p.toLowerCase() !== "de" && p.toLowerCase() !== "da" && p.toLowerCase() !== "do" && p.toLowerCase() !== "dos" && p.toLowerCase() !== "das");
-
-            if (partesFiltradas.length <= 2) {
-                return nomeLimpo; // Se já for só nome e um sobrenome, mantém original
-            }
+            // Ignora prefixos como "COLABORADOR:" ou "SENHA" da lógica de abreviação visual básica
+            if (partes[0].toUpperCase().includes("SENHA")) return nomeCompleto;
 
             let primeiroNome = partes[0];
-            let ultimoNome = partes[partes.length - 1];
-            
-            // Monta o meio abreviado mantendo a estrutura original de posições
-            let nomeFormatado = primeiroNome;
-            
-            for (let i = 1; i < partes.length - 1; i++) {
-                let p = partes[i];
-                let pLower = p.toLowerCase();
-                if (pLower === "de" || pLower === "da" || pLower === "do" || pLower === "dos" || pLower === "das") {
-                    // Opcional: pode omitir ou manter os conectores. Vamos mantê-los para soar natural.
-                    nomeFormatado += " " + pLower;
-                } else {
-                    nomeFormatado += " " + p.charAt(0).toUpperCase() + ".";
+            let sobrenomesAbreviados = partes.slice(1).map(sobrenome => {
+                // Mantém conectores em minúsculo (de, da, do, dos) sem abreviar com ponto
+                if (/^(de|da|do|dos|das|e)$/i.test(sobrenome)) {
+                    return sobrenome.toLowerCase();
                 }
-            }
-            
-            nomeFormatado += " " + ultimoNome;
-            return nomeFormatado;
+                return sobrenome.charAt(0).toUpperCase() + ".";
+            }).join(" ");
+
+            return `${primeiroNome} ${sobrenomesAbreviados}`;
         }
 
         async function iniciarFila() {
@@ -136,25 +117,32 @@
                 document.getElementById('painel-informativo').style.display = 'block'; iniciarCarrossel(); return; 
             }
             processandoChamada = true; clearInterval(intervaloCarrossel);
+            
             const atual = filaDeEspera.shift();
+            let msgOriginal = atual.msg.replace("COLABORADOR: ", "");
             
-            // Aplica a mascara da LGPD no nome que vai para a tela
-            let msgExibida = aplicarLGPD(atual.msg);
-            
+            // Aplica a abreviação apenas para exibição visual na TV (LGPD)
+            let msgAbreviada = abreviarNome(msgOriginal);
+
             document.getElementById('area-chamada').style.display = 'block';
             document.getElementById('painel-informativo').style.display = 'none';
-            document.getElementById('txtPaciente').innerText = msgExibida;
+            document.getElementById('txtPaciente').innerText = msgAbreviada;
             document.getElementById('txtSala').innerText = atual.local;
-            document.body.classList.remove('piscar-alerta'); void document.body.offsetWidth; document.body.classList.add('piscar-alerta');
-            somCampainha.play().catch(e => {});
-            atualizarHistTV(msgExibida, atual.local);
             
-            // Passa o nome já tratado pela LGPD para a voz também
-            await falarTexto(atual.msg, msgExibida, atual.local);
+            document.body.classList.remove('piscar-alerta'); 
+            void document.body.offsetWidth; 
+            document.body.classList.add('piscar-alerta');
+            
+            somCampainha.play().catch(e => {});
+            
+            atualizarHistTV(msgAbreviada, atual.local);
+            
+            // Passa o texto original (por extenso) para o sintetizador de voz
+            await falarTexto(atual.msg, atual.local);
             setTimeout(iniciarFila, 4000);
         }
 
-        function falarTexto(msgOriginal, nomeTratado, local) {
+        function falarTexto(nome, local) {
             return new Promise((resolve) => {
                 window.speechSynthesis.cancel();
                 
@@ -163,8 +151,8 @@
                 if (loc.includes("recepção") || loc.includes("triagem") || loc.includes("vacina") || loc.includes("coleta") || loc.includes("sala") || loc.includes("mesa") || loc.includes("gerência")) {
                     prep = "à"; 
                 }
-                let msgUpper = msgOriginal.toUpperCase();
-                let textoParaFalar = nomeTratado;
+                let nomeUpper = nome.toUpperCase();
+                let textoParaFalar = nome;
 
                 // --- AJUSTE PARA FALAR POR EXTENSO ---
                 textoParaFalar = textoParaFalar.replace(/PREF\./gi, "PREFERENCIAL");
@@ -172,10 +160,11 @@
 
                 let textoFinal = "";
 
-                if (msgUpper.includes("SENHA")) {
+                if (nomeUpper.includes("SENHA")) {
                     textoFinal = `Atenção. ${textoParaFalar}. Dirija-se ${prep} ${local}`;
-                } else if (msgUpper.includes("COLABORADOR:")) {
-                    textoFinal = `Atenção. Colaborador ${textoParaFalar}. Dirija-se ${prep} ${local}`;
+                } else if (nomeUpper.includes("COLABORADOR:")) {
+                    let nomeLimpo = textoParaFalar.replace(/COLABORADOR: /gi, "");
+                    textoFinal = `Atenção. Colaborador ${nomeLimpo}. Dirija-se ${prep} ${local}`;
                 } else {
                     textoFinal = `Atenção. Paciente ${textoParaFalar}. Dirija-se ${prep} ${local}`;
                 }
