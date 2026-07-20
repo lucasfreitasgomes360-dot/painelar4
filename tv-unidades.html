@@ -77,7 +77,11 @@
         };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        
+        // --- CONFIGURAÇÃO DOS SONS DO SISTEMA ---
         const somCampainha = new Audio('https://assets.mixkit.co/active_storage/sfx/2861/2861-preview.mp3');
+        // NOVO: Som exclusivo para o alerta de silêncio (estilo uma notificação suave de aviso institucional)
+        const somAvisoSilencio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
         
         let filaDeEspera = [], processandoChamada = false, listaAvisos = [], indiceAviso = 0, intervaloCarrossel, histTv = [];
 
@@ -116,6 +120,7 @@
             
             const atual = filaDeEspera.shift();
 
+            // Verificação do Alerta de Silêncio da Gerência
             if (atual.local === "SILENCIO") {
                 document.getElementById('area-chamada').style.display = 'block';
                 document.getElementById('painel-informativo').style.display = 'none';
@@ -129,7 +134,8 @@
                 void document.body.offsetWidth; 
                 document.body.classList.add('piscar-alerta');
                 
-                somCampainha.play().catch(e => {});
+                // --- AQUI MODIFICADO: Toca o som exclusivo ao invés do Bip Comum ---
+                somAvisoSilencio.play().catch(e => {});
                 
                 await falarTexto("SILENCIO_CMD", "SILENCIO_CMD");
                 
@@ -150,6 +156,7 @@
             void document.body.offsetWidth; 
             document.body.classList.add('piscar-alerta');
             
+            // Toca a campainha normal para chamadas padrão de pacientes
             somCampainha.play().catch(e => {});
             
             atualizarHistTV(msgAbreviada, atual.local);
