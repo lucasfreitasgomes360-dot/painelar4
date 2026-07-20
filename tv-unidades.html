@@ -91,17 +91,13 @@
             if (!processandoChamada) iniciarCarrossel();
         });
 
-        // Função auxiliar para abreviar os sobrenomes em conformidade com a LGPD
         function abreviarNome(nomeCompleto) {
             let partes = nomeCompleto.trim().split(/\s+/);
             if (partes.length <= 1) return nomeCompleto;
-            
-            // Ignora prefixos como "COLABORADOR:" ou "SENHA" da lógica de abreviação visual básica
             if (partes[0].toUpperCase().includes("SENHA")) return nomeCompleto;
 
             let primeiroNome = partes[0];
             let sobrenomesAbreviados = partes.slice(1).map(sobrenome => {
-                // Mantém conectores em minúsculo (de, da, do, dos) sem abreviar com ponto
                 if (/^(de|da|do|dos|das|e)$/i.test(sobrenome)) {
                     return sobrenome.toLowerCase();
                 }
@@ -119,9 +115,30 @@
             processandoChamada = true; clearInterval(intervaloCarrossel);
             
             const atual = filaDeEspera.shift();
+
+            if (atual.local === "SILENCIO") {
+                document.getElementById('area-chamada').style.display = 'block';
+                document.getElementById('painel-informativo').style.display = 'none';
+                
+                let txtPacienteElem = document.getElementById('txtPaciente');
+                txtPacienteElem.style.fontSize = "5rem"; 
+                txtPacienteElem.innerText = "AVISO IMPORTANTE";
+                document.getElementById('txtSala').innerText = "POR FAVOR, MANTENHAM O SILÊNCIO";
+                
+                document.body.classList.remove('piscar-alerta'); 
+                void document.body.offsetWidth; 
+                document.body.classList.add('piscar-alerta');
+                
+                somCampainha.play().catch(e => {});
+                
+                await falarTexto("SILENCIO_CMD", "SILENCIO_CMD");
+                
+                txtPacienteElem.style.fontSize = "8rem";
+                setTimeout(iniciarFila, 4000);
+                return;
+            }
+
             let msgOriginal = atual.msg.replace("COLABORADOR: ", "");
-            
-            // Aplica a abreviação apenas para exibição visual na TV (LGPD)
             let msgAbreviada = abreviarNome(msgOriginal);
 
             document.getElementById('area-chamada').style.display = 'block';
@@ -137,7 +154,6 @@
             
             atualizarHistTV(msgAbreviada, atual.local);
             
-            // Passa o texto original (por extenso) para o sintetizador de voz
             await falarTexto(atual.msg, atual.local);
             setTimeout(iniciarFila, 4000);
         }
@@ -146,27 +162,29 @@
             return new Promise((resolve) => {
                 window.speechSynthesis.cancel();
                 
-                let loc = local.toLowerCase();
-                let prep = "ao"; 
-                if (loc.includes("recepção") || loc.includes("triagem") || loc.includes("vacina") || loc.includes("coleta") || loc.includes("sala") || loc.includes("mesa") || loc.includes("gerência")) {
-                    prep = "à"; 
-                }
-                let nomeUpper = nome.toUpperCase();
-                let textoParaFalar = nome;
-
-                // --- AJUSTE PARA FALAR POR EXTENSO ---
-                textoParaFalar = textoParaFalar.replace(/PREF\./gi, "PREFERENCIAL");
-                // -------------------------------------
-
                 let textoFinal = "";
 
-                if (nomeUpper.includes("SENHA")) {
-                    textoFinal = `Atenção. ${textoParaFalar}. Dirija-se ${prep} ${local}`;
-                } else if (nomeUpper.includes("COLABORADOR:")) {
-                    let nomeLimpo = textoParaFalar.replace(/COLABORADOR: /gi, "");
-                    textoFinal = `Atenção. Colaborador ${nomeLimpo}. Dirija-se ${prep} ${local}`;
+                if (local === "SILENCIO_CMD") {
+                    textoFinal = "Atenção a todos. Solicitamos educadamente que mantenham o volume das conversas e dos aparelhos celulares reduzidos, para podermos garantir a qualidade do seu atendimento. Agradecemos a compreensão.";
                 } else {
-                    textoFinal = `Atenção. Paciente ${textoParaFalar}. Dirija-se ${prep} ${local}`;
+                    let loc = local.toLowerCase();
+                    let prep = "ao"; 
+                    if (loc.includes("recepção") || loc.includes("triagem") || loc.includes("vacina") || loc.includes("coleta") || loc.includes("sala") || loc.includes("mesa") || loc.includes("gerência")) {
+                        prep = "à"; 
+                    }
+                    let nomeUpper = nome.toUpperCase();
+                    let textoParaFalar = nome;
+
+                    textoParaFalar = textoParaFalar.replace(/PREF\./gi, "PREFERENCIAL");
+
+                    if (nomeUpper.includes("SENHA")) {
+                        textoFinal = `Atenção. ${textoParaFalar}. Dirija-se ${prep} ${local}`;
+                    } else if (nomeUpper.includes("COLABORADOR:")) {
+                        let nomeLimpo = textoParaFalar.replace(/COLABORADOR: /gi, "");
+                        textoFinal = `Atenção. Colaborador ${nomeLimpo}. Dirija-se ${prep} ${local}`;
+                    } else {
+                        textoFinal = `Atenção. Paciente ${textoParaFalar}. Dirija-se ${prep} ${local}`;
+                    }
                 }
 
                 const fala = new SpeechSynthesisUtterance(textoFinal);
@@ -176,7 +194,7 @@
                 fala.onerror = () => resolve();
                 
                 window.speechSynthesis.speak(fala);
-                setTimeout(resolve, 8000);
+                setTimeout(resolve, local === "SILENCIO_CMD" ? 12000 : 8000);
             });
         }
 
