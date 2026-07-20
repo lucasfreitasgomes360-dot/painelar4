@@ -107,6 +107,9 @@
                 <input type="color" id="corAviso" value="#007bff">
                 <input type="hidden" id="editAvisoKey">
                 <button id="btnSalvarAviso" class="btn btn-blue" onclick="salvarAvisoTV()">💾 SALVAR AVISO</button>
+                
+                <button class="btn" style="background-color: #ffcc00; color: #002b5c; margin-top: 15px;" onclick="enviarAlertaSilencio()">🤫 SOLICITAR SILÊNCIO NO SAGUÃO</button>
+                
                 <div id="listaAvisosGerencia" style="margin-top:15px;"></div>
             </div>
 
@@ -199,6 +202,15 @@
                 if(cat === 'gerencia') { texto = "COLABORADOR: " + texto; }
                 enviarParaFirebase(texto); input.value = ""; mostrarToast("Enviado!"); 
             }
+        }
+
+        function enviarAlertaSilencio() {
+            database.ref('fila_chamadas').push({ 
+                msg: "AVISO GERAL", 
+                local: "SILENCIO", 
+                hora: Date.now() 
+            });
+            mostrarToast("Alerta de silêncio enviado!");
         }
 
         function enviarParaFirebase(texto) {
