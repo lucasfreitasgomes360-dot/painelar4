@@ -43,7 +43,7 @@
         #toast.show { visibility: visible; opacity: 1; top: 50px; }
         .footer-creditos { margin-top: 30px; text-align: center; font-size: 0.75rem; color: #777; line-height: 1.4; border-top: 1px solid #ddd; padding-top: 15px; width: 100%; max-width: 450px; }
 
-        /* --- BOTÃO FLUTUANTE DE CHAT --- */
+        /* --- BOTÃO FLUTUANTE DE CHAT (OCULTO POR PADRÃO) --- */
         #btnAbrirChat {
             position: fixed;
             bottom: 25px;
@@ -58,7 +58,7 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.3);
             cursor: pointer;
             z-index: 99;
-            display: flex;
+            display: none; /* Inicia oculto até selecionar Médico ou Enfermagem */
             align-items: center;
             gap: 10px;
             transition: transform 0.2s;
@@ -218,13 +218,13 @@
 
     <!-- BOTÃO FLUTUANTE DO CHAT -->
     <button id="btnAbrirChat" onclick="alternarChat()">
-        💬 CHAT DA EQUIPE <span id="badgeUnread" class="badge-chat">0</span>
+        💬 CHAT MÉDICO / ENFERMAGEM <span id="badgeUnread" class="badge-chat">0</span>
     </button>
 
     <!-- CAIXA DO CHAT FLUTUANTE -->
     <div id="boxChat">
         <div class="chat-header">
-            <span>💬 Chat da Equipe</span>
+            <span>💬 Chat Médico / Enfermagem</span>
             <div>
                 <button style="background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; margin-right: 5px;" onclick="dispararAlertaSeguranca()">🚨 ALERTA</button>
                 <button style="background: transparent; color: white; border: none; font-size: 1.2rem; cursor: pointer;" onclick="alternarChat()">✖</button>
@@ -393,6 +393,20 @@
         function configurarTela() {
             const cat = document.getElementById('categoria').value;
             const salaAtual = document.getElementById('minhaSala').value;
+
+            // VALIDAÇÃO DE SEGURANÇA: Apenas Médico e Enfermagem têm acesso ao Chat e Alertas
+            const temAcessoChat = (cat === 'medico' || cat === 'enfermagem');
+            const btnChat = document.getElementById('btnAbrirChat');
+            const boxChat = document.getElementById('boxChat');
+
+            if (temAcessoChat) {
+                btnChat.style.display = 'flex';
+            } else {
+                btnChat.style.display = 'none';
+                boxChat.style.display = 'none';
+                chatAberto = false;
+            }
+
             document.getElementById('interfaceAcolhimento').style.display = (cat === 'acolhimento') ? 'block' : 'none';
             document.getElementById('interfaceRecepcao').style.display = (cat === 'recepcao') ? 'block' : 'none';
             document.getElementById('interfaceNome').style.display = (config[cat].tipo === 'nome') ? 'block' : 'none';
@@ -493,7 +507,7 @@
         function resetContadores() { if(confirm("Zerar?")) { const pass = prompt("Senha:"); if(btoa(pass) === "YWVyb3JhbmNob2l2") { database.ref('contador').set({ NORMAL: 0, PREFERENCIAL: 0, COLETA: 0, ODONTO: 0 }); database.ref('acolhimento').set({ normal: 0, pref: 0, coleta: 0, odonto: 0 }); mostrarToast("Resetado!"); } } }
 
         /* =======================================================
-           LÓGICA DO CHAT INTERNO E ALERTA DE SEGURANÇA DA EQUIPE
+           LÓGICA DO CHAT INTERNO (EXCLUSIVO MÉRICO / ENFERMAGEM)
            ======================================================= */
 
         function obterIdentificacaoSetor() {
@@ -501,10 +515,13 @@
             const sala = document.getElementById('minhaSala').value;
             if (sala) return sala;
             if (cat) return cat.toUpperCase();
-            return "COLABORADOR (NÃO IDENTIFICADO)";
+            return "EQUIPE SAÚDE";
         }
 
         function alternarChat() {
+            const cat = document.getElementById('categoria').value;
+            if (cat !== 'medico' && cat !== 'enfermagem') return;
+
             const box = document.getElementById('boxChat');
             chatAberto = !chatAberto;
             box.style.display = chatAberto ? 'flex' : 'none';
@@ -537,6 +554,9 @@
         }
 
         function enviarMensagemChat() {
+            const cat = document.getElementById('categoria').value;
+            if (cat !== 'medico' && cat !== 'enfermagem') return;
+
             const input = document.getElementById('inputChatMsg');
             const texto = input.value.trim();
             if (!texto) return;
@@ -556,8 +576,11 @@
         }
 
         function dispararAlertaSeguranca() {
+            const cat = document.getElementById('categoria').value;
+            if (cat !== 'medico' && cat !== 'enfermagem') return;
+
             const remetente = obterIdentificacaoSetor();
-            if (confirm(`🚨 Deseja DISPARAR ALERTA DE EMERGÊNCIA para toda a equipe a partir de: "${remetente}"?`)) {
+            if (confirm(`🚨 Deseja DISPARAR ALERTA DE EMERGÊNCIA para a equipe médica/enfermagem a partir de: "${remetente}"?`)) {
                 const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 database.ref('chat_equipe').push({
                     remetente: remetente,
@@ -594,6 +617,8 @@
             const msg = snap.val();
             const divMsgs = document.getElementById('chatMensagens');
             const meuSetor = obterIdentificacaoSetor();
+            const cat = document.getElementById('categoria').value;
+            const eAutorizado = (cat === 'medico' || cat === 'enfermagem');
 
             const eMinha = (msg.remetente === meuSetor);
             const msgDiv = document.createElement('div');
@@ -602,16 +627,18 @@
                 msgDiv.className = 'msg-bubble msg-alerta-box';
                 msgDiv.innerHTML = `<div class="msg-remetente">🚨 ${msg.remetente}</div>${msg.texto}<div class="msg-hora">${msg.hora}</div>`;
                 
-                // Exibe o Popup de Alerta Vermelho na tela de todos
-                document.getElementById('txtAlertaOrigem').innerText = `LOCAL: ${msg.remetente.toUpperCase()}`;
-                document.getElementById('txtAlertaMsg').innerText = msg.texto;
-                document.getElementById('modalAlerta').style.display = 'flex';
-                tocarSomSirene();
+                // Exibe o Pop-up de Alerta SOMENTE se for equipe médica ou enfermagem
+                if (eAutorizado) {
+                    document.getElementById('txtAlertaOrigem').innerText = `LOCAL: ${msg.remetente.toUpperCase()}`;
+                    document.getElementById('txtAlertaMsg').innerText = msg.texto;
+                    document.getElementById('modalAlerta').style.display = 'flex';
+                    tocarSomSirene();
+                }
             } else {
                 msgDiv.className = `msg-bubble ${eMinha ? 'msg-minha' : ''}`;
                 msgDiv.innerHTML = `<div class="msg-remetente">${msg.remetente}</div>${msg.texto}<div class="msg-hora">${msg.hora}</div>`;
 
-                if (!chatAberto && !eMinha) {
+                if (eAutorizado && !chatAberto && !eMinha) {
                     mensagensNaoLidas++;
                     atualizarBadgeChat();
                 }
