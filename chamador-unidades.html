@@ -6,12 +6,20 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <style>
-        :root { --primary: #003366; --secondary: #007bff; --success: #28a745; --warning: #ff8c00; --info: #17a2b8; --light: #f8f9fa; }
-        body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
+        :root { 
+            --primary: #003366; 
+            --secondary: #007bff; 
+            --success: #28a745; 
+            --warning: #ff8c00; 
+            --info: #17a2b8; 
+            --danger: #d32f2f;
+            --light: #f8f9fa; 
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; position: relative; }
         .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; border-top: 10px solid var(--primary); }
         .header-unidade { text-align: center; margin-bottom: 25px; }
         .header-unidade h2 { color: var(--primary); margin: 0; font-size: 1.6rem; text-transform: uppercase; font-weight: 800; }
-        .header-unidade p { color: #d32f2f; margin: 2px 0 0 0; font-weight: bold; font-size: 1rem; }
+        .header-unidade p { color: var(--danger); margin: 2px 0 0 0; font-weight: bold; font-size: 1rem; }
         .card-setor { background: var(--light); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #dee2e6; }
         label { font-weight: bold; display: block; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; }
         select, input { width: 100%; padding: 14px; border-radius: 10px; border: 2px solid #ddd; box-sizing: border-box; font-size: 1rem; margin-bottom: 10px; }
@@ -22,6 +30,7 @@
         .btn-green { background: var(--success); }
         .btn-info { background: var(--info); }
         .btn-purple { background: #6f42c1; }
+        .btn-danger { background: var(--danger); }
         .flex-row { display: flex; gap: 10px; }
         .flex-row .btn { width: 50%; }
         .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #fff3cd; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #ffeeba; text-align: center; }
@@ -30,13 +39,220 @@
         .hist-container { margin-top: 25px; border-top: 2px dashed #ddd; padding-top: 20px; }
         .hist-item { background: #fff; border: 1px solid #eee; padding: 12px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .btn-rechamada { background: #f1f3f5; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; color: var(--secondary); cursor: pointer; }
-        #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 30px; padding: 16px; position: fixed; z-index: 10; top: 30px; left: 50%; transform: translateX(-50%); opacity: 0; transition: 0.5s; }
+        #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 30px; padding: 16px; position: fixed; z-index: 100; top: 30px; left: 50%; transform: translateX(-50%); opacity: 0; transition: 0.5s; }
         #toast.show { visibility: visible; opacity: 1; top: 50px; }
         .footer-creditos { margin-top: 30px; text-align: center; font-size: 0.75rem; color: #777; line-height: 1.4; border-top: 1px solid #ddd; padding-top: 15px; width: 100%; max-width: 450px; }
+
+        /* --- BOTÃO FLUTUANTE DE CHAT --- */
+        #btnAbrirChat {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 14px 22px;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 99;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.2s;
+        }
+        #btnAbrirChat:hover { transform: scale(1.05); }
+        .badge-chat {
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            padding: 3px 8px;
+            font-size: 0.8rem;
+            display: none;
+        }
+
+        /* --- PAINEL DO CHAT INTERNO --- */
+        #boxChat {
+            display: none;
+            position: fixed;
+            bottom: 85px;
+            right: 25px;
+            width: 360px;
+            height: 520px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 100;
+            flex-direction: column;
+            overflow: hidden;
+            border: 2px solid var(--primary);
+        }
+        .chat-header {
+            background: var(--primary);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .msg-bubble {
+            background: white;
+            padding: 10px 14px;
+            border-radius: 12px;
+            max-width: 85%;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            align-self: flex-start;
+        }
+        .msg-minha {
+            background: #dcf8c6;
+            align-self: flex-end;
+        }
+        .msg-alerta-box {
+            background: #ffdddd;
+            border: 2px solid var(--danger);
+            color: var(--danger);
+            font-weight: bold;
+            align-self: center;
+            width: 90%;
+            text-align: center;
+        }
+        .msg-remetente {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 3px;
+        }
+        .msg-hora {
+            font-size: 0.65rem;
+            color: #888;
+            text-align: right;
+            margin-top: 4px;
+        }
+        .emoji-bar {
+            display: flex;
+            gap: 5px;
+            padding: 5px 10px;
+            background: #eee;
+            overflow-x: auto;
+        }
+        .emoji-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 2px 5px;
+        }
+        .chat-footer {
+            padding: 10px;
+            background: white;
+            display: flex;
+            gap: 5px;
+            border-top: 1px solid #ddd;
+        }
+        .chat-footer input {
+            margin-bottom: 0;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+
+        /* --- POPUP DE ALERTA DE EMERGÊNCIA (TELA TODA) --- */
+        #modalAlerta {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(211, 47, 47, 0.95);
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            animation: piscarVermelho 0.6s infinite alternate;
+        }
+        @keyframes piscarVermelho {
+            from { background: rgba(211, 47, 47, 0.95); }
+            to { background: rgba(128, 0, 0, 0.98); }
+        }
+        .alerta-box-inner {
+            background: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 25px;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .alerta-box-inner h1 { color: var(--danger); margin-top: 0; font-size: 2rem; }
     </style>
 </head>
 <body>
+
     <div id="toast">Operação realizada!</div>
+
+    <!-- POPUP DE EMERGÊNCIA/ALERTA -->
+    <div id="modalAlerta">
+        <div class="alerta-box-inner">
+            <h1>🚨 ALERTA DE SEGURANÇA!</h1>
+            <p style="font-size: 1.3rem; font-weight: bold; margin: 15px 0;" id="txtAlertaOrigem">SOLICITAÇÃO DE AJUDA</p>
+            <p style="font-size: 1.1rem; color: #555;" id="txtAlertaMsg">Verifique a equipe imediatamente!</p>
+            <button class="btn btn-danger" style="margin-top: 20px; font-size: 1.2rem;" onclick="fecharAlertaEmergencia()">OK - ESTOU CIENTE</button>
+        </div>
+    </div>
+
+    <!-- BOTÃO FLUTUANTE DO CHAT -->
+    <button id="btnAbrirChat" onclick="alternarChat()">
+        💬 CHAT DA EQUIPE <span id="badgeUnread" class="badge-chat">0</span>
+    </button>
+
+    <!-- CAIXA DO CHAT FLUTUANTE -->
+    <div id="boxChat">
+        <div class="chat-header">
+            <span>💬 Chat da Equipe</span>
+            <div>
+                <button style="background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; margin-right: 5px;" onclick="dispararAlertaSeguranca()">🚨 ALERTA</button>
+                <button style="background: transparent; color: white; border: none; font-size: 1.2rem; cursor: pointer;" onclick="alternarChat()">✖</button>
+            </div>
+        </div>
+
+        <div id="chatMensagens" class="chat-messages">
+            <!-- Mensagens aparecem aqui -->
+        </div>
+
+        <div class="emoji-bar">
+            <button class="emoji-btn" onclick="inserirEmoji('👍')">👍</button>
+            <button class="emoji-btn" onclick="inserirEmoji('🆗')">🆗</button>
+            <button class="emoji-btn" onclick="inserirEmoji('⚠️')">⚠️</button>
+            <button class="emoji-btn" onclick="inserirEmoji('🚨')">🚨</button>
+            <button class="emoji-btn" onclick="inserirEmoji('🩺')">🩺</button>
+            <button class="emoji-btn" onclick="inserirEmoji('💉')">💉</button>
+            <button class="emoji-btn" onclick="inserirEmoji('🚪')">🚪</button>
+            <button class="emoji-btn" onclick="inserirEmoji('🔒')">🔒</button>
+            <button class="emoji-btn" onclick="inserirEmoji('😊')">😊</button>
+        </div>
+
+        <div class="chat-footer">
+            <input type="text" id="inputChatMsg" placeholder="Digite uma mensagem..." onkeypress="checarEnter(event)">
+            <button class="btn btn-blue" style="width: auto; padding: 8px 15px; margin-bottom: 0;" onclick="enviarMensagemChat()">Enviar</button>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header-unidade">
             <h2>USF AERO RANCHO IV</h2>
@@ -137,6 +353,8 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         let historicosPorSala = {};
+        let chatAberto = false;
+        let mensagensNaoLidas = 0;
 
         const config = {
             acolhimento: { salas: ["Mesa Acolhimento"], tipo: 'acolhimento' },
@@ -214,7 +432,7 @@
         }
 
         function enviarParaFirebase(texto) {
-            const sala = document.getElementById('minhaSala').value;
+            const sala = document.getElementById('minhaSala').value || "Geral";
             database.ref('fila_chamadas').push({ msg: texto, local: sala, hora: Date.now() });
             if (!historicosPorSala[sala]) historicosPorSala[sala] = [];
             historicosPorSala[sala].unshift({ texto: texto, hora: new Date().toLocaleTimeString() });
@@ -273,6 +491,136 @@
         function prepararEdicao(key, msg, cor) { document.getElementById('inputAvisoUnidade').value = msg; document.getElementById('corAviso').value = cor; document.getElementById('editAvisoKey').value = key; document.getElementById('btnSalvarAviso').innerText = "💾 SALVAR ALTERAÇÃO"; }
         function excluirAviso(key) { if(confirm("Excluir?")) database.ref('avisos_unidade/'+key).remove(); }
         function resetContadores() { if(confirm("Zerar?")) { const pass = prompt("Senha:"); if(btoa(pass) === "YWVyb3JhbmNob2l2") { database.ref('contador').set({ NORMAL: 0, PREFERENCIAL: 0, COLETA: 0, ODONTO: 0 }); database.ref('acolhimento').set({ normal: 0, pref: 0, coleta: 0, odonto: 0 }); mostrarToast("Resetado!"); } } }
+
+        /* =======================================================
+           LÓGICA DO CHAT INTERNO E ALERTA DE SEGURANÇA DA EQUIPE
+           ======================================================= */
+
+        function obterIdentificacaoSetor() {
+            const cat = document.getElementById('categoria').value;
+            const sala = document.getElementById('minhaSala').value;
+            if (sala) return sala;
+            if (cat) return cat.toUpperCase();
+            return "COLABORADOR (NÃO IDENTIFICADO)";
+        }
+
+        function alternarChat() {
+            const box = document.getElementById('boxChat');
+            chatAberto = !chatAberto;
+            box.style.display = chatAberto ? 'flex' : 'none';
+            if (chatAberto) {
+                mensagensNaoLidas = 0;
+                atualizarBadgeChat();
+                const divMsgs = document.getElementById('chatMensagens');
+                divMsgs.scrollTop = divMsgs.scrollHeight;
+            }
+        }
+
+        function atualizarBadgeChat() {
+            const badge = document.getElementById('badgeUnread');
+            if (mensagensNaoLidas > 0 && !chatAberto) {
+                badge.innerText = mensagensNaoLidas;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function inserirEmoji(emoji) {
+            const inp = document.getElementById('inputChatMsg');
+            inp.value += emoji;
+            inp.focus();
+        }
+
+        function checarEnter(e) {
+            if (e.key === 'Enter') enviarMensagemChat();
+        }
+
+        function enviarMensagemChat() {
+            const input = document.getElementById('inputChatMsg');
+            const texto = input.value.trim();
+            if (!texto) return;
+
+            const remetente = obterIdentificacaoSetor();
+            const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            database.ref('chat_equipe').push({
+                remetente: remetente,
+                texto: texto,
+                hora: hora,
+                tipo: 'normal',
+                timestamp: Date.now()
+            });
+
+            input.value = "";
+        }
+
+        function dispararAlertaSeguranca() {
+            const remetente = obterIdentificacaoSetor();
+            if (confirm(`🚨 Deseja DISPARAR ALERTA DE EMERGÊNCIA para toda a equipe a partir de: "${remetente}"?`)) {
+                const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                database.ref('chat_equipe').push({
+                    remetente: remetente,
+                    texto: "🚨 SOLICITAÇÃO DE EMERGÊNCIA / ALERTA DE SEGURANÇA!",
+                    hora: hora,
+                    tipo: 'alerta',
+                    timestamp: Date.now()
+                });
+            }
+        }
+
+        function tocarSomSirene() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.6);
+            } catch(e){}
+        }
+
+        function fecharAlertaEmergencia() {
+            document.getElementById('modalAlerta').style.display = 'none';
+        }
+
+        // ESCUTAR MENSAGENS E ALERTAS EM TEMPO REAL NO FIREBASE
+        database.ref('chat_equipe').limitToLast(40).on('child_added', snap => {
+            const msg = snap.val();
+            const divMsgs = document.getElementById('chatMensagens');
+            const meuSetor = obterIdentificacaoSetor();
+
+            const eMinha = (msg.remetente === meuSetor);
+            const msgDiv = document.createElement('div');
+
+            if (msg.tipo === 'alerta') {
+                msgDiv.className = 'msg-bubble msg-alerta-box';
+                msgDiv.innerHTML = `<div class="msg-remetente">🚨 ${msg.remetente}</div>${msg.texto}<div class="msg-hora">${msg.hora}</div>`;
+                
+                // Exibe o Popup de Alerta Vermelho na tela de todos
+                document.getElementById('txtAlertaOrigem').innerText = `LOCAL: ${msg.remetente.toUpperCase()}`;
+                document.getElementById('txtAlertaMsg').innerText = msg.texto;
+                document.getElementById('modalAlerta').style.display = 'flex';
+                tocarSomSirene();
+            } else {
+                msgDiv.className = `msg-bubble ${eMinha ? 'msg-minha' : ''}`;
+                msgDiv.innerHTML = `<div class="msg-remetente">${msg.remetente}</div>${msg.texto}<div class="msg-hora">${msg.hora}</div>`;
+
+                if (!chatAberto && !eMinha) {
+                    mensagensNaoLidas++;
+                    atualizarBadgeChat();
+                }
+            }
+
+            divMsgs.appendChild(msgDiv);
+            divMsgs.scrollTop = divMsgs.scrollHeight;
+        });
+
     </script>
 </body>
 </html>
